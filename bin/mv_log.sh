@@ -1,0 +1,1 @@
+/home/caiopinho/carmen_lcad/src/utilities/scripts/mv_log.sh
