@@ -26,6 +26,11 @@
 
 #include <carmen/collision_detection.h>
 
+#include <fstream>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+
 
 //#define save_rddf_to_file
 
@@ -45,11 +50,13 @@ int use_unity_simulator = 0;
 static void
 print_path_(vector<carmen_robot_and_trailer_path_point_t> path)
 {
-	for (unsigned int i = 0; (i < path.size()) && (i < 15); i++)
+	for (unsigned int i = 0; (i < path.size()) && (i < 15); i++) {
 		printf("v %5.3lf, phi %5.3lf, t %5.3lf, x %5.3lf, y %5.3lf, theta %5.3lf\n",
 				path[i].v, path[i].phi, path[i].time,
 				path[i].x, path[i].y,
 				path[i].theta);
+		fflush(stdout);//CPINHO ADICIONEI AQUI
+	}
 
 	printf("\n");
 	fflush(stdout);
@@ -63,6 +70,8 @@ double voice_interface_max_vel = 0.0;
 vector<carmen_robot_and_trailer_path_point_t>
 smooth_short_path(vector<carmen_robot_and_trailer_path_point_t> &original_path)
 {
+	/*printf("entrou no smooth_short_path\n");/*CPINHO: ENTROU AQUI DEPOIS QUE 
+	RECEBEU path_goals_and_annotations_message (ANTES DE PRINTAR  O PATH)*/
 	vector<carmen_robot_and_trailer_path_point_t> path = original_path;
 
 	static double stable_phi = 0.0;	// Ultimo phi de um path nao short
@@ -96,12 +105,23 @@ smooth_short_path(vector<carmen_robot_and_trailer_path_point_t> &original_path)
 void
 publish_model_predictive_planner_motion_commands(vector<carmen_robot_and_trailer_path_point_t> path, double timestamp)
 {
-	if (!GlobalState::following_path)
+	/*printf("entrou no publish_model_predictive_planner_motion_commands\n");/*CPINHO: ENTRA AQUI DEPOIS QUE 
+	ENTRA NO publish_robot_ackerman_motion_commands_eliminating_path_follower*/
+	if (!GlobalState::following_path) {
+		//printf("nao estah following_path\n");//CPINHO: PASSANDO POR AQUI ANTES DE INICIAR O MOVIMENTO (ANTES DE GERAR CMDS)
 		return;
-
+	}
 	carmen_robot_and_trailer_motion_command_t *commands =
 			(carmen_robot_and_trailer_motion_command_t *) (malloc(path.size() * sizeof(carmen_robot_and_trailer_motion_command_t)));
 	int i = 0;
+
+	auto now = std::chrono::system_clock::now();
+	auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    std::stringstream datetime;
+    datetime << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %X");
+	
+	ofstream myfile;
+	myfile.open("sent_commands_complete_"+ datetime.str() + ".txt", ios::in | ios::app);
 	for (std::vector<carmen_robot_and_trailer_path_point_t>::iterator it = path.begin();	it != path.end(); ++it)
 	{
 		commands[i].v = it->v;
@@ -111,15 +131,30 @@ publish_model_predictive_planner_motion_commands(vector<carmen_robot_and_trailer
 		commands[i].y = it->y;
 		commands[i].theta = it->theta;
 		commands[i].beta = it->beta;
+		myfile << "i:" << i << "\n";
+		myfile << "v:" << commands[i].v << "\n";
+		myfile << "phi:" << commands[i].phi << "\n";
+		myfile << "t:" << commands[i].time << "\n";
+		myfile <<  "x:" << commands[i].x << "\n";
+		myfile << "y:" << commands[i].y << "\n";
+		myfile << "theta:" << commands[i].theta << "\n";
+		myfile << "beta:" << commands[i].beta << "\n";
 
+		
 		i++;
 	}
-
+	
+	
 	int num_commands = path.size();
+	printf("num commands %i",num_commands);
+	myfile << "num commands:" << num_commands << "\n";
+	myfile.close();
 	if (GlobalState::use_obstacle_avoider)
 	{
-		if (!g_teacher_mode)  // standard operation
+		if (!g_teacher_mode) { // standard operation
 			carmen_robot_ackerman_publish_motion_command(commands, num_commands, timestamp);
+			//printf("standard operation\n");//CPINHO: ENTROU AQUI DEPOIS QUE COMECOU A SEGUIR O PATH (GERANDO num commands)
+		}
 		else  // mode to prevent sending mpp commands to the rest of the control hierarchy and interfaces.
 			carmen_robot_ackerman_publish_teacher_motion_command(commands, num_commands, timestamp);
 	}
@@ -135,8 +170,10 @@ publish_robot_ackerman_motion_commands_eliminating_path_follower(vector<carmen_r
 {
 	vector<carmen_robot_and_trailer_path_point_t> path = smooth_short_path(original_path);	// A plicacao dos atrazos do robo agora são na saida do obstacle_avoider
 //	vector<carmen_robot_and_trailer_path_point_t> path = original_path;//apply_robot_delays(original_path);	// A plicacao dos atrazos do robo agora são na saida do obstacle_avoider
-	printf("\n vai chamar o print_path_ dentro do publish_robot_ackerman_motion_commands\n");//CPINHO: CRIEI AQUI
-	print_path_(path);//CPINHO: DESCOMENTEI AQUI
+	/*printf("\n vai chamar o print_path_ dentro do publish_robot_ackerman_motion_commands_eliminating_path_follower\n");/*CPINHO: ENTRA AQUI DEPOIS 
+	QUE CRIA O PATH*/
+	//print_path_(path);//CPINHO: DESCOMENTEI AQUI, DEU RUIM
+	//fflush(stdout); //CPINHO: INSERI A LINHA AQUI
 	publish_model_predictive_planner_motion_commands(path, timestamp);
 }
 
@@ -144,6 +181,8 @@ publish_robot_ackerman_motion_commands_eliminating_path_follower(vector<carmen_r
 void
 publish_model_predictive_planner_rrt_path_message(list<RRT_Path_Edge> path, double timestamp)
 {
+	/*printf("entrou no publish_model_predictive_planner_rrt_path_message\n");/*CPINHO: ENTROU (256x) 
+	DEPOIS DO N ESTA FOLLOWING PATH E DEPOIS EM STANDARD OPERATION*/
 	int i = 0;
 	rrt_path_message msg;
 	list<RRT_Path_Edge>::iterator it;
@@ -205,6 +244,8 @@ publish_model_predictive_planner_rrt_path_message(list<RRT_Path_Edge> path, doub
 void
 publish_path_follower_motion_commands(carmen_robot_and_trailer_motion_command_t *commands, int num_commands, double timestamp)
 {
+	/*printf("entrou no publish_path_follower_motion_commands\n");/*CPINHO: DEPOIS QUE ACABOU DE FOLLOWING
+	O PATH ENTROU AQUI (DEPOIS QUE PAROU DE GERAR v, phi, t, x, y, theta)*/
 	if (GlobalState::use_obstacle_avoider)
 	{
 		if (!g_teacher_mode)  // standard operation
@@ -490,11 +531,13 @@ goal_crossed()
 void
 build_and_follow_path(double timestamp)
 {
+	//printf("entrou no build_and_follow_path\n");//CPINHO: PASSOU AQUI DEPOIS DE ALGUNS LOOPS E DE RECEBER GLOBALPOS
 	list<RRT_Path_Edge> path_follower_path;
 	static double last_phi = 0.0;
 
 	if (GlobalState::goal_pose && (GlobalState::route_planner_state != PLANNING_FROM_POSE_TO_LANE))
 	{
+		printf("entrou na primeira condicao\n");
 		double distance_to_goal = DIST2D_P(GlobalState::goal_pose, GlobalState::localizer_pose);
 		if (((distance_to_goal < 1.0) && (fabs(GlobalState::robot_config.max_v) < 0.07) && (fabs(GlobalState::last_odometry.v) < 0.03)))// ||
 //			((distance_to_goal < 0.3) && (fabs(GlobalState::robot_config.max_v) < 0.07) && (fabs(GlobalState::last_odometry.v) < 0.5) &&
@@ -504,44 +547,54 @@ build_and_follow_path(double timestamp)
 //					path_goals_and_annotations_message->number_of_poses, path_goals_and_annotations_message->goal_list_size,
 //					distance_to_goal, GlobalState::robot_config.max_v, GlobalState::last_odometry.v);
 //			fflush(stdout);
-
+			printf("dist to goal <1 e baixa vel\n");
 			GlobalState::robot_config.max_v = 0.0;
 			if (GlobalState::following_path)
 			{
+				printf("globalstate estah following_path\n");
 				last_phi *= 0.95;
 				publish_path_follower_single_motion_command(0.0, last_phi, timestamp);
 			}
 			else	// Stop button
 			{
+				printf("globalstate nao estah following_path\n");
 				last_phi *= 0.9;
 				publish_path_follower_single_motion_command(0.0, last_phi, timestamp);
 			}
 		}
 		else
 		{
+			printf("distance to goal >1\n");
 			vector<carmen_robot_and_trailer_path_point_t> path = compute_plan(&tree);
 			if (!GlobalState::path_has_collision_or_phi_exceeded && (tree.num_paths > 0) && (path.size() > 0))
 			{
-				if (GlobalState::eliminate_path_follower)
+				printf("globalstate nao tem colisao\n");
+				if (GlobalState::eliminate_path_follower) {
+					printf("eliminate_path_follower ta true\n");
 					publish_robot_ackerman_motion_commands_eliminating_path_follower(path, timestamp);
+				}
 				path_follower_path = build_path_follower_path(path);
 				publish_model_predictive_planner_rrt_path_message(path_follower_path, timestamp);
+				printf("path_follower_path buildado e publicado o publish_model_predictive_planner_rrt_path_message\n");
 //				carmen_model_predictive_planner_publish_motion_plan_message(tree.paths[0], tree.paths_sizes[0]);
 			}
 			else if (GlobalState::path_has_collision_or_phi_exceeded && (path.size() > 0) && (fabs(GlobalState::last_odometry.v) < 0.03))
 			{
 				publish_path_follower_single_motion_command(0.0, path[0].phi, timestamp);
+				printf("publicando unico comando 0.0\n");
 			}
 			else
 			{
 				GlobalState::robot_config.max_v = 0.0;
 				if (GlobalState::following_path)
 				{
+					printf("following_path ta true\n");
 					last_phi *= 0.95;
 					publish_path_follower_single_motion_command(0.0, last_phi, timestamp);
 				}
 				else	// Stop button
 				{
+					printf("following_path ta false\n");
 					last_phi *= 0.9;
 					publish_path_follower_single_motion_command(0.0, last_phi, timestamp);
 				}
@@ -549,21 +602,25 @@ build_and_follow_path(double timestamp)
 //			printf(" np %d, gls %d, dtg %5.2lf, max_v %5.3lf, v %5.3lf, ps %d\n",
 //					path_goals_and_annotations_message->number_of_poses, path_goals_and_annotations_message->goal_list_size,
 //					distance_to_goal, GlobalState::robot_config.max_v, GlobalState::last_odometry.v, (int) path.size());
-			printf("\n vai chamar o print_path_ dentro do build_and_follow_path\n");//CPINHO: CRIEI AQUI
+			
+			/*printf("\n vai chamar o print_path_ dentro do build_and_follow_path\n");/*CPINHO: ENTROU AQUI (263x) 
+			DEPOIS DO publish_model_predictive_planner_rrt_path_message (imediatamente antes dos cmds)
+			e NO FINAL (quando acabou o movimento) depois do publish_path_follower_motion_commands (nao tem mais rrt)*/
 			print_path_(path);//CPINHO: DESCOMENTEI AQUI
 			fflush(stdout);//CPINHO: DESCOMENTEI AQUI
 
 			last_phi = GlobalState::last_odometry.phi;
 		}
 		publish_navigator_ackerman_status_message();
-//		publish_plan_tree_for_navigator_gui(tree);
+//		publish_plan_tree_for_navigator_gui(tree);//CPINHO: INVESTIGAR ISSO AQUI
 	}
 }
 
 
 void
-build_and_follow_path_new(double timestamp)
+build_and_follow_path_new(double timestamp)//NÃO RODOU ISSO
 {
+	printf("entrou no build_and_follow_path_new\n");//NÃO ENTROU AQUI
 	static double last_phi = 0.0;
 
 	if (GlobalState::goal_pose)
@@ -610,18 +667,25 @@ build_and_follow_path_new(double timestamp)
 static void
 localize_ackerman_globalpos_message_handler(carmen_localize_ackerman_globalpos_message *msg)
 {
-	if (!GlobalState::localizer_pose)
+	printf("recebeu msg localize_ackerman_globalpos_message_handler\n");/*CPINHO: ENTROU AQUI DEPOIS DE ALGUNS LOOPS, 
+	TESTAR SE FOI QUANDO POSICIONEI O ROBO */
+	if (!GlobalState::localizer_pose) {
 		GlobalState::localizer_pose = (carmen_robot_and_trailer_pose_t *) malloc(sizeof(carmen_robot_and_trailer_pose_t));
+		printf("localizer_pose não estava criado\n");//NÃO PASSOU AQUI
+	}
 
 	*GlobalState::localizer_pose = {msg->globalpos.x, msg->globalpos.y, msg->globalpos.theta, msg->beta};
 
-	if (GlobalState::use_mpc)
+	if (GlobalState::use_mpc) {
 		build_and_follow_path_new(msg->timestamp);
-	else
+		//printf("use_mpc true, usando build_and_follow_path_new\n");//  NÃo PASSOU POR AQUI
+	} else {
 		build_and_follow_path(msg->timestamp);
-
+		//printf("use_mpc false, usando build_and_follow_path\n");//PASSOU POR AQUI
+	}
 	if (msg->semi_trailer_type != GlobalState::semi_trailer_config.type)
 	{
+		printf("entrou no semi_trailer_type\n");// NÃO PASSOU POR AQUI
 		carmen_task_manager_read_semi_trailer_parameters(&GlobalState::semi_trailer_config, argc_global, argv_global, msg->semi_trailer_type);
 		carmen_collision_detection_set_semi_trailer_type(GlobalState::semi_trailer_config.type);
 	}
@@ -631,6 +695,7 @@ localize_ackerman_globalpos_message_handler(carmen_localize_ackerman_globalpos_m
 static void
 simulator_ackerman_truepos_message_handler(carmen_simulator_ackerman_truepos_message *msg)
 {
+	printf("recebeu simulator_ackerman_truepos_message_handler\n");//NÃO PASSOU POR AQUI
 	GlobalState::last_odometry.v = msg->v;
 	GlobalState::last_odometry.phi = msg->phi;
 
@@ -649,6 +714,7 @@ simulator_ackerman_truepos_message_handler(carmen_simulator_ackerman_truepos_mes
 static void
 path_goals_and_annotations_message_handler(carmen_behavior_selector_path_goals_and_annotations_message *msg)
 {
+	//printf("recebeu path_goals_and_annotations_message\n");//CPINHO: RECEBEU ANTES DE INICIAR A GERACAO DO PATH
 	path_goals_and_annotations_message = msg;
 
 	Pose goal_pose;
@@ -714,19 +780,25 @@ path_goals_and_annotations_message_handler(carmen_behavior_selector_path_goals_a
 static void
 base_ackerman_odometry_message_handler(carmen_base_ackerman_odometry_message *msg)
 {
+	//printf("recebeu base_ackerman_odometry_message\n");//CPINHO: RECEBENDO SEMPRE
 	GlobalState::last_odometry.v = msg->v;
 	GlobalState::last_odometry.phi = msg->phi;
-
-	if (fabs(msg->v) < GlobalState::eliminate_path_follower_transition_v)
+	//printf("v do last_odometry dentro do odometry message hander %5.3lf\n",msg->v);
+	if (fabs(msg->v) < GlobalState::eliminate_path_follower_transition_v) {
 		GlobalState::eliminate_path_follower = 1;
-	else
+		//CPINHO: PASSOU POR AQUI (DURANTE TODO PERIODO)
+	} else {
 		GlobalState::eliminate_path_follower = 0;
+		//printf("not eliminate_path_follower\n");
+		//CPINHO: NÃO PASSOU POR AQUI
+	}
 }
 
 
 static void
 behavior_selector_state_message_handler(carmen_behavior_selector_state_message *msg)
 {
+	printf("recebeu behavior_selector_state_message\n");//CPINHO: RECEBEU DEPOIS DE ALGUNS LOOPS//NOVO TESTE: RECEBEU SEMPRE
 	GlobalState::behavior_selector_task = msg->task;
 	GlobalState::behavior_selector_low_level_state = msg->low_level_state;
 	GlobalState::current_algorithm = msg->algorithm;
@@ -755,11 +827,13 @@ behavior_selector_state_message_handler(carmen_behavior_selector_state_message *
 static void
 carmen_obstacle_distance_mapper_compact_map_message_handler(carmen_obstacle_distance_mapper_compact_map_message *message)
 {
+	//printf("recebeu msg carmen_obstacle_distance_mapper_compact_map_message_handler\n");//CPINHO: RECEBENDO SEMPRE
 	static carmen_obstacle_distance_mapper_compact_map_message *compact_distance_map = NULL;
 	static carmen_obstacle_distance_mapper_map_message distance_map;
 
 	if (compact_distance_map == NULL)
 	{
+		//printf("compact_distance_map == NULL\n"); //CPINHO: NÃO PASSOU AQUI
 		carmen_obstacle_distance_mapper_create_new_map(&distance_map, message->config, message->host, message->timestamp);
 		compact_distance_map = (carmen_obstacle_distance_mapper_compact_map_message *) (calloc(1, sizeof(carmen_obstacle_distance_mapper_compact_map_message)));
 		carmen_obstacle_distance_mapper_cpy_compact_map_message_to_compact_map(compact_distance_map, message);
@@ -767,6 +841,7 @@ carmen_obstacle_distance_mapper_compact_map_message_handler(carmen_obstacle_dist
 	}
 	else
 	{
+		//printf("compact distance_map not null\n"); //CPINHO: PASSANDO SEMPRE POR AQUI
 		carmen_obstacle_distance_mapper_clear_distance_map_message_using_compact_map(&distance_map, compact_distance_map, DISTANCE_MAP_HUGE_DISTANCE);
 		carmen_obstacle_distance_mapper_free_compact_distance_map(compact_distance_map);
 		carmen_obstacle_distance_mapper_cpy_compact_map_message_to_compact_map(compact_distance_map, message);
@@ -848,12 +923,14 @@ register_handlers()
 {
 	if (!GlobalState::use_truepos)
 	{
+		//printf("diferente de use_truepos\n");//CPINHO: PASSOU AQUI UMA VEZ (INICIO DO PROGRAMA)
 		carmen_localize_ackerman_subscribe_globalpos_message(NULL, (carmen_handler_t) localize_ackerman_globalpos_message_handler, CARMEN_SUBSCRIBE_LATEST);
 		carmen_base_ackerman_subscribe_odometry_message(NULL, (carmen_handler_t) base_ackerman_odometry_message_handler, CARMEN_SUBSCRIBE_LATEST);
 	}
-	else
+	else {
+		printf("nao eh diferente de use_truepos\n");//CPINHO:  NAO PASSOU AQUI
 		carmen_simulator_ackerman_subscribe_truepos_message(NULL, (carmen_handler_t) simulator_ackerman_truepos_message_handler, CARMEN_SUBSCRIBE_LATEST);
-
+	}
 	carmen_behavior_selector_subscribe_current_state_message(NULL, (carmen_handler_t) behavior_selector_state_message_handler, CARMEN_SUBSCRIBE_LATEST);
 
 	carmen_behavior_selector_subscribe_path_goals_and_annotations_message(NULL, (carmen_handler_t) path_goals_and_annotations_message_handler, CARMEN_SUBSCRIBE_LATEST);
