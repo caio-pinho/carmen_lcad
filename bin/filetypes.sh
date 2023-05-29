@@ -1,1 +1,1 @@
-/home/caiopinho/carmen_lcad/src/utilities/scripts/filetypes.sh
+/mnt/Dados/caiopinho/carmen_lcad/src/utilities/scripts/filetypes.sh

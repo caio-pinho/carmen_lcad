@@ -24,6 +24,10 @@
 
 #include "g2o/types/slam2d/se2.h"
 
+#include <fstream>
+#include <iomanip>
+#include <sstream>
+
 using namespace g2o;
 
 int print_to_debug = 0;
@@ -737,7 +741,8 @@ get_trajectory_dimensions_from_robot_state(carmen_robot_and_trailer_pose_t *loca
 	td.goal_pose.y = goal_in_car_reference[1];
 	td.goal_pose.theta = goal_in_car_reference[2];
 	td.goal_pose.beta = goal_pose->beta;
-
+	printf("goal pose: x %5.3lf, y %5.3lf,\n",td.goal_pose.x,td.goal_pose.y);//@CPINHO: adicionei aqui
+	printf("entrou no get_trajectory_dimensions_from_robot_state\n");//@CPINHO: adicionei aqui. ENTROU AQUI DESDE QUE COMPUTE ROUTE E PAROU NO DIST TO GOAL < 1
 	return (td);
 }
 
@@ -746,6 +751,10 @@ vector<vector<carmen_robot_and_trailer_path_point_t> >
 compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal_pose, Command last_odometry, double target_v,
 		carmen_behavior_selector_path_goals_and_annotations_message *path_goals_and_annotations_message)
 {
+	ofstream compute_path_to_goal;
+	compute_path_to_goal.open("all_publishers.txt", ios::in | ios::app);
+	compute_path_to_goal << "target_v:" << target_v << "\n";
+	compute_path_to_goal.close();
 	vector<vector<carmen_robot_and_trailer_path_point_t>> paths;
 	vector<carmen_robot_and_trailer_path_point_t> lane_in_local_pose, detailed_lane;
 	static TrajectoryControlParameters previous_good_tcp = {};
@@ -763,6 +772,7 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 	paths.resize(1);
 	if (!set_reverse_planning_global_state(target_v, last_odometry.v, previous_good_tcp))
 	{
+		printf("entrou no !set_reverse_planning_global_state\n");//CPINHO: ADICIONEI AQUI. NUNCA PASSOU AQUI
 		paths.clear();
 		return (paths);
 	}
@@ -771,10 +781,12 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 
 	if (GlobalState::use_path_planner || GlobalState::use_tracker_goal_and_lane)
 	{
+		printf("sim no use_path_planner e use_tracker_goal_and_lane\n");//CPINHO: ADICIONEI AQUI. NUNCA PASSOU AQUI
 		build_detailed_path_lane(&lane_in_local_pose, detailed_lane);
 	}
 	else
 	{
+		printf("nao entrou no use_path_planner e use_tracker_goal_and_lane\n");//CPINHO: ADICIONEI AQUI. PASSOU AQUI SEMPRE
 		goal_in_lane = build_detailed_rddf_lane(goal_pose, &lane_in_local_pose, detailed_lane);
 		if (!goal_in_lane)
 			detailed_lane.clear();
@@ -787,20 +799,24 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 
 	bool use_lane = true;
 	TrajectoryDimensions td = get_trajectory_dimensions_from_robot_state(localizer_pose, last_odometry, goal_pose);
+	printf("gerou TrajectoryDimensions td\n");//CPINHO: ADICIONEI AQUI. PASSOU AQUI DO COMECO ATE O FINAL DO TRAJETO
 	TrajectoryControlParameters otcp = get_complete_optimized_trajectory_control_parameters(previous_good_tcp, td, target_v, detailed_lane, use_lane);
+	printf("gerou TrajectoryControlParameters otcp\n");//CPINHO: ADICIONEI AQUI.  PASSOU AQUI DO COMECO ATE O FINAL DO TRAJETO
 	if (otcp.valid)
 	{
+		printf("otcp valido\n");//CPINHO: ADICIONEI AQUI. PASSOU AQUI DO COMECO ATE O PRINT_PATH_ ACABAR
 		vector<carmen_robot_and_trailer_path_point_t> path;
 		vector<carmen_robot_and_trailer_path_point_t> path_local;
 
 		if (!get_path_from_optimized_tcp(path, path_local, otcp, td, localizer_pose))
 		{
+			printf("entrou no !get_path_from_optimized_tcp\n");//CPINHO: ADICIONEI AQUI. NUNCA PASOU POR AQUI
 			paths.clear();
 			return (paths);
 		}
 
 		paths[0] = path;
-//		printf("%lf   %lf\n", path[path.size() - 1].beta, goal_pose->beta);
+		printf("betas %lf   %lf\n", path[path.size() - 1].beta, goal_pose->beta);
 		fflush(stdout);
 
 		previous_good_tcp = otcp;
@@ -808,6 +824,7 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 	}
 	else
 	{
+		printf("nao entrou no otcp valido\n");//CPINHO: ADICIONEI AQUI. PASSOU AQUI 7x DEPOIS QUE FINALIZOU O TRAJETO (QUANDO PAROU O PRINT_PATH_)
 		if ((path_goals_and_annotations_message->timestamp - last_timestamp) > 0.5)
 			previous_good_tcp.valid = false;
 
