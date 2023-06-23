@@ -790,6 +790,13 @@ path_goals_and_annotations_message_handler(carmen_behavior_selector_path_goals_a
 	goal_pose.theta = carmen_normalize_theta(msg->goal_list[0].theta);
 	goal_pose.beta = msg->goal_list[0].beta;
 
+	ofstream file_path_publish_rrt;
+	file_path_publish_rrt.open("all_publishers.txt", ios::in | ios::app);
+	file_path_publish_rrt << "path goals and annot msg handlder GlobalState_robot_config.max_v_antes:" << GlobalState::robot_config.max_v << "\n";
+	file_path_publish_rrt << "path goals and annot msg handlder GlobalState_param_max_vel:" << GlobalState::param_max_vel << "\n";
+	
+
+
 	if (GlobalState::reverse_driving_flag)
 	{
 		if (msg->goal_list[0].v < 0.0)
@@ -829,9 +836,11 @@ path_goals_and_annotations_message_handler(carmen_behavior_selector_path_goals_a
 //		GlobalState::robot_config.max_v = 0.0;
 
 //	printf("*target_v %lf\n", GlobalState::robot_config.max_v);
-	ofstream file_path_publish_rrt;
-	file_path_publish_rrt.open("all_publishers.txt", ios::in | ios::app);
+
 	file_path_publish_rrt << "path goals and annot msg handlder desired_v:" << desired_v << "\n";
+	file_path_publish_rrt << "path goals and annot msg handlder goal_list[0].v:" << msg->goal_list[0].v << "\n";
+	file_path_publish_rrt << "path goals and annot msg handlder GlobalState_robot_config.max_v_depois:" << GlobalState::robot_config.max_v << "\n";
+	//file_path_publish_rrt << "path goals and annot msg handlder GlobalState_param_max_vel:" << GlobalState::param_max_vel << "\n";
 	file_path_publish_rrt.close();
 
 	GlobalState::set_goal_pose(goal_pose);
