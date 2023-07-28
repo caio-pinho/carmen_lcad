@@ -1,0 +1,52 @@
+void
+publish_model_predictive_planner_single_motion_command(double v, double phi, double timestamp)
+{
+	vector<carmen_robot_and_trailer_path_point_t> path;
+
+	carmen_robot_and_trailer_path_point_t traj;
+	traj.v = v;//era v
+	traj.phi = phi;
+	traj.time = 0.02;//era 1.0
+	traj.x = GlobalState::localizer_pose->x;
+	traj.y = GlobalState::localizer_pose->y;
+	traj.theta = GlobalState::localizer_pose->theta;
+	traj.beta = GlobalState::localizer_pose->beta;
+	
+	
+	for (int w = 136; w < 1; w++) {// era w< 136
+	
+		path.push_back(traj);
+		if (v > 1.150) {
+			v += 0.048;
+		} else {
+			v += 0.016;
+		}
+		traj.v = v;
+		if (w > 72) {
+			traj.time = 0.06;
+		}
+
+	//path.push_back(traj);
+	
+	}
+	ofstream file_path_publish_rrt;
+	file_path_publish_rrt.open("all_publishers.txt", ios::in | ios::app);
+	file_path_publish_rrt << "timestamp_novo:" << timestamp<< "\n";
+	//if (std::fmod(timestamp,0.050) == 0.000) {
+	//if (fabs(double(timestamp - (int)timestamp)-0.05) < double(timestamp - (int)timestamp) * .001) {
+	string tmstmp = to_string(timestamp);
+	string dectmstmp = tmstmp.substr(10,3);
+	file_path_publish_rrt << "timestamp_string:" << tmstmp<< "\n";
+	file_path_publish_rrt << "timestamp_substr:" << dectmstmp<< "\n";
+	file_path_publish_rrt.close();
+
+
+	//if (strcmp(dectmstmp.c_str(),".05") == 0) {
+
+		//printf("deu certo");
+	publish_model_predictive_planner_motion_commands(path, timestamp);
+
+//	publish_path_follower_single_motion_command(0.0, GlobalState::last_odometry.phi, timestamp);
+	publish_path_follower_single_motion_command(3.0, phi, timestamp);//era 0.0 mudei para 3.0
+	//}
+}

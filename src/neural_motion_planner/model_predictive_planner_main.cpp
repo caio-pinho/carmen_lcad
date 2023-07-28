@@ -134,7 +134,7 @@ publish_model_predictive_planner_motion_commands(vector<carmen_robot_and_trailer
 	
 	int num_commands = path.size();
 	myfile << "num_commands:" << num_commands << "\n";
-	for (std::vector<carmen_robot_and_trailer_path_point_t>::iterator it = path.begin();	it != path.end(); ++it)
+	for (std::vector<carmen_robot_and_trailer_path_point_t>::iterator it = path.begin();	it != path.end(); ++it)//i < 100; ++it)//it != path.end(); ++it)
 	{
 		commands[i].v = it->v;
 		commands[i].phi = it->phi;
@@ -191,7 +191,7 @@ publish_robot_ackerman_motion_commands_eliminating_path_follower(vector<carmen_r
 	QUE CRIA O PATH*/
 	//print_path_(path);//CPINHO: DESCOMENTEI AQUI, DEU RUIM
 	//fflush(stdout); //CPINHO: INSERI A LINHA AQUI
-	publish_model_predictive_planner_motion_commands(path, timestamp);
+	publish_model_predictive_planner_motion_commands(path, timestamp); //COMENTAR AQUI PARA NAO RODAR. ESSE QUE FAZ GERAR OS COMANDOS NORMAIS
 }
 
 
@@ -324,7 +324,7 @@ publish_path_follower_single_motion_command(double v, double phi, double timesta
 	commands[0].phi = phi;
 	commands[0].time = 0.5;
 	commands[1] = commands[0];
-	publish_path_follower_motion_commands(commands, 2, timestamp);
+	publish_path_follower_motion_commands(commands, 2, timestamp);//era 2 mudei pra 1
 }
 
 
