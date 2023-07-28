@@ -723,3 +723,5 @@ src/imu_viewer/Makefile.qmake
 src/imu_viewer/moc_mainwindow.cpp
 src/imu_viewer/moc_objectgl.cpp
 /.metadata/
+bin/all_publishers_-1.txt
+bin/all_publishers_-2.txt
