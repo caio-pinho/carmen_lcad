@@ -752,9 +752,15 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 		carmen_behavior_selector_path_goals_and_annotations_message *path_goals_and_annotations_message)
 {
 	ofstream compute_path_to_goal;
+	ofstream file_generate_dataset;
 	compute_path_to_goal.open("all_publishers.txt", ios::in | ios::app);
+	file_generate_dataset.open("dataset.txt", ios::in | ios::app);
 	compute_path_to_goal << "target_v:" << target_v << "\n";
+	if (GlobalState::following_path) {
+	file_generate_dataset << std::fixed << std::setprecision(3) << "tv:" << target_v << ";";
+	}
 	compute_path_to_goal.close();
+	file_generate_dataset.close();
 	vector<vector<carmen_robot_and_trailer_path_point_t>> paths;
 	vector<carmen_robot_and_trailer_path_point_t> lane_in_local_pose, detailed_lane;
 	static TrajectoryControlParameters previous_good_tcp = {};

@@ -31,7 +31,7 @@
 #include <iomanip>
 #include <sstream>
 
-
+bool enviou_goal = false;
 //#define save_rddf_to_file
 
 Tree tree; //tree rooted on robot
@@ -106,13 +106,23 @@ void
 publish_model_predictive_planner_motion_commands(vector<carmen_robot_and_trailer_path_point_t> path, double timestamp)
 {
 	ofstream myfile;
+	ofstream file_generate_dataset;
 	myfile.open("all_publishers.txt", ios::in | ios::app);
+	file_generate_dataset.open("dataset.txt", ios::in | ios::app);
+
 	//myfile << "carmen_get_host():" << carmen_get_host() << "\n";
 	myfile << "GlobalState_localizer_pose->x:" << std::fixed << std::setprecision(3) << GlobalState::localizer_pose->x << "\n";//std::fixed
-	myfile << "GlobalState_localizer_pose->y: " << GlobalState::localizer_pose->y << "\n";
+	myfile << "GlobalState_localizer_pose->y:" << GlobalState::localizer_pose->y << "\n";
 	myfile << "GlobalState_localizer_pose->theta:" << GlobalState::localizer_pose->theta << "\n";
 	myfile << "GlobalState_last_odometry.v:" << GlobalState::last_odometry.v << "\n";
 	myfile << "GlobalState_last_odometry.phi:" << GlobalState::last_odometry.phi << "\n";
+	if (GlobalState::following_path) {
+	file_generate_dataset << "lx:" << std::fixed << std::setprecision(3) << GlobalState::localizer_pose->x << ";";//std::fixed
+	file_generate_dataset << "ly:" << GlobalState::localizer_pose->y << ";";
+	file_generate_dataset << "ltheta:" << GlobalState::localizer_pose->theta << ";";
+	file_generate_dataset << "lv:" << GlobalState::last_odometry.v << ";";
+	file_generate_dataset << "lphi:" << GlobalState::last_odometry.phi << ";";
+	}
 	//myfile << "GlobalState::localizer_pose_timestamp:" << GlobalState::localizer_pose_timestamp << "\n";//SO RETORNOU 0
 
 	/*printf("entrou no publish_model_predictive_planner_motion_commands\n"); @CPINHO: ENTRA AQUI DEPOIS QUE 
@@ -152,6 +162,10 @@ publish_model_predictive_planner_motion_commands(vector<carmen_robot_and_trailer
 		myfile << "commands y[" << i << "]:" << commands[i].y << "\n";
 		myfile << "commands theta[" << i << "]:" << commands[i].theta << "\n";
 		//myfile << "commands beta[" << i << "]:" << commands[i].beta << "\n";
+		
+		file_generate_dataset << "cv[" << i << "]:" << commands[i].v << ";";
+		file_generate_dataset << "cphi[" << i << "]:" << commands[i].phi << ";";
+		file_generate_dataset << "ct[" << i << "]:" << commands[i].time << ";";
 
 		
 		i++;
@@ -161,6 +175,9 @@ publish_model_predictive_planner_motion_commands(vector<carmen_robot_and_trailer
 	num_commands = path.size();
 	printf("num commands %i",num_commands);
 	
+	file_generate_dataset << "\n";
+	enviou_goal = false;
+	file_generate_dataset.close();
 	myfile.close();
 	if (GlobalState::use_obstacle_avoider)
 	{
@@ -233,8 +250,10 @@ publish_model_predictive_planner_rrt_path_message(list<RRT_Path_Edge> path, doub
 		msg.path = (Edge_Struct *) malloc(sizeof(Edge_Struct) * msg.size);
 	}
 	ofstream file_path_publish_rrt;
+	ofstream file_generate_dataset;
 	//file_path_publish_rrt.open("path_publish_rrt.txt", ios::in | ios::app);
 	file_path_publish_rrt.open("all_publishers.txt", ios::in | ios::app);
+	file_generate_dataset.open("dataset.txt", ios::in | ios::app);
 	for (it = path.begin(); it != path.end(); it++, i++)
 	{
 		msg.path[i].p1.x = it->p1.pose.x;
@@ -268,8 +287,13 @@ publish_model_predictive_planner_rrt_path_message(list<RRT_Path_Edge> path, doub
 		file_path_publish_rrt << std::fixed << std::setprecision(3) <<"publish rrt goal_pose.x:" << GlobalState::goal_pose->x << "\n";
 		file_path_publish_rrt << "publish rrt goal_pose.y:" << GlobalState::goal_pose->y << "\n";
 		file_path_publish_rrt << "publish rrt goal_pose.theta:" << GlobalState::goal_pose->theta << "\n";
-		
-	
+
+		if (GlobalState::following_path&&!enviou_goal) {
+		file_generate_dataset << std::fixed << std::setprecision(3) <<"gx:" << GlobalState::goal_pose->x << ";";
+		file_generate_dataset << "gy:" << GlobalState::goal_pose->y << ";";
+		file_generate_dataset << "gtheta:" << GlobalState::goal_pose->theta << ";";
+		enviou_goal = true;
+		}
 		
 		//file_path_publish_rrt << "path_publish_rrt_i:" << i << "\n";
 		file_path_publish_rrt << "msg.path[" << i << "].p1.x:" << msg.path[i].p1.x << "\n";
@@ -292,6 +316,7 @@ publish_model_predictive_planner_rrt_path_message(list<RRT_Path_Edge> path, doub
 
 	}
 	file_path_publish_rrt.close();
+	file_generate_dataset.close();
 	Publisher_Util::publish_rrt_path_message(&msg);
 
 	free(msg.path);
@@ -791,7 +816,9 @@ path_goals_and_annotations_message_handler(carmen_behavior_selector_path_goals_a
 	goal_pose.beta = msg->goal_list[0].beta;
 
 	ofstream file_path_publish_rrt;
+	ofstream file_generate_dataset;
 	file_path_publish_rrt.open("all_publishers.txt", ios::in | ios::app);
+	//file_generate_dataset.open("dataset.txt", ios::in | ios::app);
 	file_path_publish_rrt << "path goals and annot msg handlder GlobalState_robot_config.max_v_antes:" << GlobalState::robot_config.max_v << "\n";
 	file_path_publish_rrt << "path goals and annot msg handlder GlobalState_param_max_vel:" << GlobalState::param_max_vel << "\n";
 	
@@ -838,10 +865,14 @@ path_goals_and_annotations_message_handler(carmen_behavior_selector_path_goals_a
 //	printf("*target_v %lf\n", GlobalState::robot_config.max_v);
 
 	file_path_publish_rrt << "path goals and annot msg handlder desired_v:" << desired_v << "\n";
+	/*if (GlobalState::following_path) {//DESCOMENTAR PARA GERAR O desired_v no dataset
+	file_generate_dataset << "dv:" << desired_v << ";";//<< std::fixed << std::setprecision(3)
+	}*/
 	file_path_publish_rrt << "path goals and annot msg handlder goal_list[0].v:" << msg->goal_list[0].v << "\n";
 	file_path_publish_rrt << "path goals and annot msg handlder GlobalState_robot_config.max_v_depois:" << GlobalState::robot_config.max_v << "\n";
 	//file_path_publish_rrt << "path goals and annot msg handlder GlobalState_param_max_vel:" << GlobalState::param_max_vel << "\n";
 	file_path_publish_rrt.close();
+	//file_generate_dataset.close();
 
 	GlobalState::set_goal_pose(goal_pose);
 }
