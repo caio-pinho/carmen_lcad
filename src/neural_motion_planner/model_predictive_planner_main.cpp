@@ -30,6 +30,9 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
+#include "seqdense.h"
+#include "eml_net.h"
+#include "eml_common.h"
 
 bool enviou_goal = false;
 //#define save_rddf_to_file
@@ -531,6 +534,212 @@ compute_plan(Tree *tree)
 }
 
 
+void 
+new_commands()//double localizer_x, double localizer_y, double localizer_theta, double localizer_v, double localizer_phi, double goal_x, double goal_y, double goal_theta)
+{
+	carmen_robot_and_trailer_motion_command_t commands[2];
+	float values[9] = { 7757527.502,-363658.677,-0.154,8.550,7757499.058,-363648.787,-0.527,7.656,0.033};
+	float command[3];
+	seqdense_regress(values, 9, command, 3);
+	//EmlError err = nnmodel_regress(values, 6, out, 2);
+	float command_v = command[0];
+	float command_phi = command[1];
+	float command_t = command[2];
+	fprintf( stderr, "command v: %f\n",command_v);
+	fprintf( stderr, "command phi: %f\n",command_phi);
+	fprintf( stderr, "command t: %f\n",command_t);
+	int numcmds = 0;
+	while (numcmds < 1500) {
+		double timestamp = carmen_get_time();
+		string tmstmp = to_string(timestamp);
+		string dectmstmp = tmstmp.substr(10,5);
+		if (strcmp(dectmstmp.c_str(),".0000") == 0 || strcmp(dectmstmp.c_str(),".0500") == 0 || strcmp(dectmstmp.c_str(),".1000") == 0 || strcmp(dectmstmp.c_str(),".1500") == 0 || strcmp(dectmstmp.c_str(),".2000") == 0 || strcmp(dectmstmp.c_str(),".2500") == 0 || strcmp(dectmstmp.c_str(),".3000") == 0 || strcmp(dectmstmp.c_str(),".3500") == 0 || strcmp(dectmstmp.c_str(),".4000") == 0 || strcmp(dectmstmp.c_str(),".4500") == 0 || strcmp(dectmstmp.c_str(),".5000") == 0 || strcmp(dectmstmp.c_str(),".5500") == 0 || strcmp(dectmstmp.c_str(),".6000") == 0 || strcmp(dectmstmp.c_str(),".6500") == 0 || strcmp(dectmstmp.c_str(),".7000") == 0 || strcmp(dectmstmp.c_str(),".7500") == 0 || strcmp(dectmstmp.c_str(),".8000") == 0 || strcmp(dectmstmp.c_str(),".8500") == 0 || strcmp(dectmstmp.c_str(),".9000") == 0 || strcmp(dectmstmp.c_str(),".9500") == 0)  {
+			printf("numero do comando: %d\n",numcmds);
+			commands[0].v = command_v;
+			commands[0].phi = command_phi;
+			commands[0].time = command_t;
+			commands[1] = commands[0];
+			printf("timestamp multiplo: %s \n",tmstmp.c_str());
+			publish_path_follower_motion_commands(commands, 2, carmen_get_time());
+			//publish_model_predictive_planner_single_motion_command_new(command_v, command_phi, command_v, carmen_get_time());
+			numcmds += 1;
+		}
+	}
+	
+	//keras.predict (x, y, phi);
+	//return command_v, command_phi, command_t;
+}
+
+void
+publish_model_predictive_planner_single_motion_command_new(double v, double phi, double timestamp)
+{
+	vector<carmen_robot_and_trailer_path_point_t> path;
+
+	carmen_robot_and_trailer_path_point_t traj;
+	traj.v = v;//era v
+	traj.phi = phi;
+	traj.time = 0.02;//era 1.0
+	traj.x = GlobalState::localizer_pose->x;
+	traj.y = GlobalState::localizer_pose->y;
+	traj.theta = GlobalState::localizer_pose->theta;
+	traj.beta = GlobalState::localizer_pose->beta;
+	
+	
+	for (int w = 136; w < 1; w++) {// era w< 136
+	
+		path.push_back(traj);
+		if (v > 1.150) {
+			v += 0.048;
+		} else {
+			v += 0.016;
+		}
+		traj.v = v;
+		if (w > 72) {
+			traj.time = 0.06;
+		}
+
+	//path.push_back(traj);
+	
+	}
+	ofstream file_path_publish_rrt;
+	file_path_publish_rrt.open("all_publishers.txt", ios::in | ios::app);
+	file_path_publish_rrt << "timestamp_novo:" << timestamp<< "\n";
+	//if (std::fmod(timestamp,0.050) == 0.000) {
+	//if (fabs(double(timestamp - (int)timestamp)-0.05) < double(timestamp - (int)timestamp) * .001) {
+	string tmstmp = to_string(timestamp);
+	string dectmstmp = tmstmp.substr(10,3);
+	file_path_publish_rrt << "timestamp_string:" << tmstmp<< "\n";
+	file_path_publish_rrt << "timestamp_substr:" << dectmstmp<< "\n";
+	file_path_publish_rrt.close();
+
+
+	//if (strcmp(dectmstmp.c_str(),".05") == 0) {
+
+		//printf("deu certo");
+	publish_model_predictive_planner_motion_commands(path, timestamp);
+
+//	publish_path_follower_single_motion_command(0.0, GlobalState::last_odometry.phi, timestamp);
+	publish_path_follower_single_motion_command(3.0, phi, timestamp);//era 0.0 mudei para 3.0
+	//}
+}
+
+void
+go_new()
+{
+	GlobalState::following_path = true;
+
+	int numcmds = 0;
+	while (numcmds < 1500) {
+		double timestamp = carmen_get_time();
+		string tmstmp = to_string(timestamp);
+		string dectmstmp = tmstmp.substr(10,5);
+		if (strcmp(dectmstmp.c_str(),".0000") == 0 || strcmp(dectmstmp.c_str(),".0500") == 0 || strcmp(dectmstmp.c_str(),".1000") == 0 || strcmp(dectmstmp.c_str(),".1500") == 0 || strcmp(dectmstmp.c_str(),".2000") == 0 || strcmp(dectmstmp.c_str(),".2500") == 0 || strcmp(dectmstmp.c_str(),".3000") == 0 || strcmp(dectmstmp.c_str(),".3500") == 0 || strcmp(dectmstmp.c_str(),".4000") == 0 || strcmp(dectmstmp.c_str(),".4500") == 0 || strcmp(dectmstmp.c_str(),".5000") == 0 || strcmp(dectmstmp.c_str(),".5500") == 0 || strcmp(dectmstmp.c_str(),".6000") == 0 || strcmp(dectmstmp.c_str(),".6500") == 0 || strcmp(dectmstmp.c_str(),".7000") == 0 || strcmp(dectmstmp.c_str(),".7500") == 0 || strcmp(dectmstmp.c_str(),".8000") == 0 || strcmp(dectmstmp.c_str(),".8500") == 0 || strcmp(dectmstmp.c_str(),".9000") == 0 || strcmp(dectmstmp.c_str(),".9500") == 0)  {
+			publish_model_predictive_planner_single_motion_command_new(0.0, 0.0, carmen_get_time());
+			printf("timestamp multiplo: %s \n",tmstmp.c_str());
+			numcmds += 1;
+		}
+	}
+}
+
+
+
+void
+publish_model_predictive_planner_single_motion_command_new_original(double v, double phi, double timestamp)
+{
+	vector<carmen_robot_and_trailer_path_point_t> path;
+
+	carmen_robot_and_trailer_path_point_t traj;
+	traj.v = v;//era v
+	traj.phi = phi;
+	traj.time = 0.02;//era 1.0
+	traj.x = GlobalState::localizer_pose->x;
+	traj.y = GlobalState::localizer_pose->y;
+	traj.theta = GlobalState::localizer_pose->theta;
+	traj.beta = GlobalState::localizer_pose->beta;
+	
+	
+	/*for (int w = 136; w < 1; w++) {// era w< 136
+		fprintf( stderr,"w: %d",w);
+		fprintf(stderr,"v dentro do for: %f",v);
+	
+		path.push_back(traj);
+		if (v > 1.150) {
+			v += 0.048;
+		} else {
+			v += 0.016;
+		}
+		traj.v = v;
+		if (w > 72) {
+			traj.time = 0.06;
+		}
+
+	//path.push_back(traj);
+	
+	}*/
+	ofstream file_path_publish_rrt;
+	file_path_publish_rrt.open("all_publishers.txt", ios::in | ios::app);
+	file_path_publish_rrt << "timestamp_novo:" << timestamp<< "\n";
+	//if (std::fmod(timestamp,0.050) == 0.000) {
+	//if (fabs(double(timestamp - (int)timestamp)-0.05) < double(timestamp - (int)timestamp) * .001) {
+	string tmstmp = to_string(timestamp);
+	string dectmstmp = tmstmp.substr(10,3);
+	file_path_publish_rrt << "timestamp_string:" << tmstmp<< "\n";
+	file_path_publish_rrt << "timestamp_substr:" << dectmstmp<< "\n";
+	file_path_publish_rrt.close();
+
+
+	//if (strcmp(dectmstmp.c_str(),".05") == 0) {
+
+		//printf("deu certo");
+	//publish_model_predictive_planner_motion_commands(path, timestamp);//ESSE OU O ULTIMO QUE FAZ O MOVIMENTO? FEZ O MOVIMENTO SEM ESSE
+
+//	publish_path_follower_single_motion_command(0.0, GlobalState::last_odometry.phi, timestamp);
+	publish_path_follower_single_motion_command(3.0, phi, timestamp);//era 0.0 mudei para 3.0 ESSE Q FAZ O MOVIMENTO!
+	//}
+}
+
+
+
+
+void
+go_new_original()
+{
+	GlobalState::following_path = true;
+
+	//volatile bool continua = true;
+	int numcmds = 0;
+	//while(continua) {
+	while (numcmds < 1500) {//era <300
+		double timestamp = carmen_get_time();
+		string tmstmp = to_string(timestamp);
+		string dectmstmp = tmstmp.substr(10,5);
+		if (strcmp(dectmstmp.c_str(),".0000") == 0 || strcmp(dectmstmp.c_str(),".0500") == 0 || strcmp(dectmstmp.c_str(),".1000") == 0 || strcmp(dectmstmp.c_str(),".1500") == 0 || strcmp(dectmstmp.c_str(),".2000") == 0 || strcmp(dectmstmp.c_str(),".2500") == 0 || strcmp(dectmstmp.c_str(),".3000") == 0 || strcmp(dectmstmp.c_str(),".3500") == 0 || strcmp(dectmstmp.c_str(),".4000") == 0 || strcmp(dectmstmp.c_str(),".4500") == 0 || strcmp(dectmstmp.c_str(),".5000") == 0 || strcmp(dectmstmp.c_str(),".5500") == 0 || strcmp(dectmstmp.c_str(),".6000") == 0 || strcmp(dectmstmp.c_str(),".6500") == 0 || strcmp(dectmstmp.c_str(),".7000") == 0 || strcmp(dectmstmp.c_str(),".7500") == 0 || strcmp(dectmstmp.c_str(),".8000") == 0 || strcmp(dectmstmp.c_str(),".8500") == 0 || strcmp(dectmstmp.c_str(),".9000") == 0 || strcmp(dectmstmp.c_str(),".9500") == 0)  {
+			printf("numero do comando: %d",numcmds);
+			publish_model_predictive_planner_single_motion_command_new_original(0.0, 0.0, carmen_get_time());
+			printf("timestamp multiplo: %s \n",tmstmp.c_str());
+			numcmds += 1;
+			//continua = false;
+		}
+	}
+
+	//for (int z = 0; z < 2000; z++) {
+	//publish_model_predictive_planner_single_motion_command(3.0, 0.0, carmen_get_time());
+	//}
+	/*publish_model_predictive_planner_single_motion_command(0.031, 0.0, carmen_get_time());
+	publish_model_predictive_planner_single_motion_command(0.047, 0.0, carmen_get_time());
+	publish_model_predictive_planner_single_motion_command(0.063, 0.0, carmen_get_time());
+	publish_model_predictive_planner_single_motion_command(0.079, 0.0, carmen_get_time());
+	publish_model_predictive_planner_single_motion_command(0.095, 0.0, carmen_get_time());
+	publish_model_predictive_planner_single_motion_command(0.111, 0.0, carmen_get_time());
+	publish_model_predictive_planner_single_motion_command(0.127, 0.0, carmen_get_time());
+	publish_model_predictive_planner_single_motion_command(0.143, 0.0, carmen_get_time());
+	publish_model_predictive_planner_single_motion_command(0.159, 0.0, carmen_get_time());
+	publish_model_predictive_planner_single_motion_command(0.175, 0.0, carmen_get_time());*/
+	//GlobalState::following_path = false;
+	
+}
+
+
 void
 go()
 {
@@ -964,7 +1173,9 @@ carmen_behaviour_selector_compact_lane_contents_message_handler(carmen_obstacle_
 static void
 navigator_ackerman_go_message_handler()
 {
-	go();
+	new_commands();
+	//go();
+	//go_new_original();
 }
 
 
@@ -1195,4 +1406,5 @@ main(int argc, char **argv)
 //	virtual_laser_message.host = carmen_get_host();
 
 	carmen_ipc_dispatch();
+
 }
