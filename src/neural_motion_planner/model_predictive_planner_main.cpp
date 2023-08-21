@@ -552,8 +552,8 @@ new_commands()//double localizer_x, double localizer_y, double localizer_theta, 
 	while (numcmds < 1500) {
 		double timestamp = carmen_get_time();
 		string tmstmp = to_string(timestamp);
-		string dectmstmp = tmstmp.substr(10,5);
-		if (strcmp(dectmstmp.c_str(),".0000") == 0 || strcmp(dectmstmp.c_str(),".0500") == 0 || strcmp(dectmstmp.c_str(),".1000") == 0 || strcmp(dectmstmp.c_str(),".1500") == 0 || strcmp(dectmstmp.c_str(),".2000") == 0 || strcmp(dectmstmp.c_str(),".2500") == 0 || strcmp(dectmstmp.c_str(),".3000") == 0 || strcmp(dectmstmp.c_str(),".3500") == 0 || strcmp(dectmstmp.c_str(),".4000") == 0 || strcmp(dectmstmp.c_str(),".4500") == 0 || strcmp(dectmstmp.c_str(),".5000") == 0 || strcmp(dectmstmp.c_str(),".5500") == 0 || strcmp(dectmstmp.c_str(),".6000") == 0 || strcmp(dectmstmp.c_str(),".6500") == 0 || strcmp(dectmstmp.c_str(),".7000") == 0 || strcmp(dectmstmp.c_str(),".7500") == 0 || strcmp(dectmstmp.c_str(),".8000") == 0 || strcmp(dectmstmp.c_str(),".8500") == 0 || strcmp(dectmstmp.c_str(),".9000") == 0 || strcmp(dectmstmp.c_str(),".9500") == 0)  {
+		string dectmstmp = tmstmp.substr(10,7);
+		if (strcmp(dectmstmp.c_str(),".000000") == 0 || strcmp(dectmstmp.c_str(),".050000") == 0 || strcmp(dectmstmp.c_str(),".100000") == 0 || strcmp(dectmstmp.c_str(),".150000") == 0 || strcmp(dectmstmp.c_str(),".200000") == 0 || strcmp(dectmstmp.c_str(),".250000") == 0 || strcmp(dectmstmp.c_str(),".300000") == 0 || strcmp(dectmstmp.c_str(),".350000") == 0 || strcmp(dectmstmp.c_str(),".400000") == 0 || strcmp(dectmstmp.c_str(),".450000") == 0 || strcmp(dectmstmp.c_str(),".500000") == 0 || strcmp(dectmstmp.c_str(),".550000") == 0 || strcmp(dectmstmp.c_str(),".600000") == 0 || strcmp(dectmstmp.c_str(),".650000") == 0 || strcmp(dectmstmp.c_str(),".700000") == 0 || strcmp(dectmstmp.c_str(),".750000") == 0 || strcmp(dectmstmp.c_str(),".800000") == 0 || strcmp(dectmstmp.c_str(),".850000") == 0 || strcmp(dectmstmp.c_str(),".900000") == 0 || strcmp(dectmstmp.c_str(),".950000") == 0)  {
 			printf("numero do comando: %d\n",numcmds);
 			commands[0].v = command_v;
 			commands[0].phi = command_phi;
