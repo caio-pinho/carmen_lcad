@@ -535,30 +535,41 @@ compute_plan(Tree *tree)
 
 
 void 
-new_commands()//double localizer_x, double localizer_y, double localizer_theta, double localizer_v, double localizer_phi, double goal_x, double goal_y, double goal_theta)
+new_commands()//double goal_x, double goal_y, double goal_theta, double target_v, double localizer_x, double localizer_y, double localizer_theta, double localizer_v, double localizer_phi)
 {
 	carmen_robot_and_trailer_motion_command_t commands[2];
-	float values[9] = { 7757527.502,-363658.677,-0.154,8.550,7757499.058,-363648.787,-0.527,7.656,0.033};
+	float values[9];// = {7757527.502,-363658.677,-0.154,8.550,7757499.058,-363648.787,-0.527,7.656,0.033};
 	float command[3];
-	seqdense_regress(values, 9, command, 3);
+	
 	//EmlError err = nnmodel_regress(values, 6, out, 2);
-	float command_v = command[0];
-	float command_phi = command[1];
-	float command_t = command[2];
-	fprintf( stderr, "command v: %f\n",command_v);
-	fprintf( stderr, "command phi: %f\n",command_phi);
-	fprintf( stderr, "command t: %f\n",command_t);
+	//double command_v = command[0];
+	//double command_phi = command[1];
+	//double command_t = command[2];
 	int numcmds = 0;
 	while (numcmds < 1500) {
 		double timestamp = carmen_get_time();
 		string tmstmp = to_string(timestamp);
 		string dectmstmp = tmstmp.substr(10,7);
 		if (strcmp(dectmstmp.c_str(),".000000") == 0 || strcmp(dectmstmp.c_str(),".050000") == 0 || strcmp(dectmstmp.c_str(),".100000") == 0 || strcmp(dectmstmp.c_str(),".150000") == 0 || strcmp(dectmstmp.c_str(),".200000") == 0 || strcmp(dectmstmp.c_str(),".250000") == 0 || strcmp(dectmstmp.c_str(),".300000") == 0 || strcmp(dectmstmp.c_str(),".350000") == 0 || strcmp(dectmstmp.c_str(),".400000") == 0 || strcmp(dectmstmp.c_str(),".450000") == 0 || strcmp(dectmstmp.c_str(),".500000") == 0 || strcmp(dectmstmp.c_str(),".550000") == 0 || strcmp(dectmstmp.c_str(),".600000") == 0 || strcmp(dectmstmp.c_str(),".650000") == 0 || strcmp(dectmstmp.c_str(),".700000") == 0 || strcmp(dectmstmp.c_str(),".750000") == 0 || strcmp(dectmstmp.c_str(),".800000") == 0 || strcmp(dectmstmp.c_str(),".850000") == 0 || strcmp(dectmstmp.c_str(),".900000") == 0 || strcmp(dectmstmp.c_str(),".950000") == 0)  {
+			values[0] = GlobalState::goal_pose->x; //7757527.502;//GlobalState::goal_pose->x;
+			values[1] = GlobalState::goal_pose->y;//-363658.677;//GlobalState::goal_pose->y;
+			values[2] = GlobalState::goal_pose->theta;//-0.154;//GlobalState::goal_pose->theta;
+			values[3] = GlobalState::robot_config.max_v;
+			values[4] = GlobalState::localizer_pose->x;
+			values[5] = GlobalState::localizer_pose->y;
+			values[6] = GlobalState::localizer_pose->theta;
+			values[7] = GlobalState::last_odometry.v;
+			values[8] = GlobalState::last_odometry.phi;
+			//values = {GlobalState::goal_pose->x, GlobalState::goal_pose->y, GlobalState::goal_pose->theta, GlobalState::robot_config.max_v, GlobalState::localizer_pose->x, GlobalState::localizer_pose->y, GlobalState::localizer_pose->theta, GlobalState::last_odometry.v, GlobalState::last_odometry.phi};
+			seqdense_regress(values, 9, command, 3);
 			printf("numero do comando: %d\n",numcmds);
-			commands[0].v = command_v;
-			commands[0].phi = command_phi;
-			commands[0].time = command_t;
+			commands[0].v = command[0];
+			commands[0].phi = command[1];
+			commands[0].time = command[2];
 			commands[1] = commands[0];
+			fprintf( stderr, "command v: %f\n",command[0]);
+			fprintf( stderr, "command phi: %f\n",command[1]);
+			fprintf( stderr, "command t: %f\n",command[2]);
 			printf("timestamp multiplo: %s \n",tmstmp.c_str());
 			publish_path_follower_motion_commands(commands, 2, carmen_get_time());
 			//publish_model_predictive_planner_single_motion_command_new(command_v, command_phi, command_v, carmen_get_time());
@@ -828,7 +839,7 @@ build_and_follow_path(double timestamp)
 
 	if (GlobalState::goal_pose && (GlobalState::route_planner_state != PLANNING_FROM_POSE_TO_LANE))
 	{
-		printf("entrou na primeira condicao\n");//CPINHO: ENTROU AQUI DESDE O COMECO DO LOG ATE O FINAL
+		fprintf(stderr,"entrou na primeira condicao\n");//CPINHO: ENTROU AQUI DESDE O COMECO DO LOG ATE O FINAL
 		double distance_to_goal = DIST2D_P(GlobalState::goal_pose, GlobalState::localizer_pose);
 		if (((distance_to_goal < 1.0) && (fabs(GlobalState::robot_config.max_v) < 0.07) && (fabs(GlobalState::last_odometry.v) < 0.03)))// ||
 //			((distance_to_goal < 0.3) && (fabs(GlobalState::robot_config.max_v) < 0.07) && (fabs(GlobalState::last_odometry.v) < 0.5) &&
@@ -1174,6 +1185,7 @@ static void
 navigator_ackerman_go_message_handler()
 {
 	new_commands();
+	GlobalState::following_path = true;
 	//go();
 	//go_new_original();
 }
