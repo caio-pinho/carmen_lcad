@@ -310,8 +310,9 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 		TrajectoryControlParameters tcp,
 		gsl_spline *phi_spline, double v0, double i_beta, double delta_t)
 {
+	//printf("cpvs: path size antes: %ld\n",path.size());
 	gsl_interp_accel *acc = gsl_interp_accel_alloc();
-
+	
 	robot_state.x = 0.0;
 	robot_state.y = 0.0;
 	robot_state.theta = 0.0;
@@ -373,7 +374,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	}
 
 	gsl_interp_accel_free(acc);
-
+	//printf("cpvs: path size depois: %ld\n",path.size());
 	return (distance_traveled);
 }
 
@@ -459,8 +460,10 @@ simulate_car_from_parameters(TrajectoryDimensions &td,
 
 	Command command;
 	carmen_robot_and_trailer_traj_point_t robot_state;
+	//printf("scfp\n");
+	//printf("scfp: path size antes: %ld\n",path.size());
 	double distance_traveled = compute_path_via_simulation(robot_state, command, path, tcp, phi_spline, v0, i_beta, delta_t);
-
+	//printf("scfp: path size depos do compute path: %ld\n",path.size());
 	gsl_spline_free(phi_spline);
 
 	carmen_robot_and_trailer_path_point_t furthest_point;

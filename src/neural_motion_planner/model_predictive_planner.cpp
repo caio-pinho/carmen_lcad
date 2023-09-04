@@ -597,14 +597,19 @@ get_path_from_optimized_tcp(vector<carmen_robot_and_trailer_path_point_t> &path,
 		TrajectoryDimensions td,
 		carmen_robot_and_trailer_pose_t *localizer_pose)
 {
-	if (GlobalState::use_mpc)
+	if (GlobalState::use_mpc) {
 		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i, 0.025);
-	else if (use_unity_simulator)
+		printf("gpfot:entrou no use_mpc\n");
+	} else if (use_unity_simulator) {
 		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i, 0.02);
-	else if (GlobalState::eliminate_path_follower)
+		printf("gpfot:entrou no use_unity_simulator\n");
+	} else if (GlobalState::eliminate_path_follower) { //SEMPRE FOI POR ESSE CAMINHO
 		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i, 0.02);
-	else
+		printf("gpfot:entrou no eliminate_path_follower\n");
+	} else {
 		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i);
+		printf("gpfot:entrou no else\n");
+	}
 	path_local = path;
 	if (path_has_loop(td.dist, otcp.sf))
 	{
@@ -820,8 +825,14 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 			paths.clear();
 			return (paths);
 		}
-
-		paths[0] = path;
+		printf("paths size: %ld\n",paths.size());
+		printf("path size: %ld\n",path.size());
+		/*printf("cptg.path.x: %lf\n",path.x);
+		printf("cptg.path.y: %lf\n",path.y);
+		printf("cptg.path.phi: %lf\n",path.phi);
+		printf("cptg.path.v: %lf\n",path.v);
+		printf("cptg.path.time: %lf\n",path.time);*/
+		paths[0] = path;//COMENTANDO AQUI NAO GERA O MOTION PLANNING (LINHA VERDE/VINHO)
 		printf("betas %lf   %lf\n", path[path.size() - 1].beta, goal_pose->beta);
 		fflush(stdout);
 
