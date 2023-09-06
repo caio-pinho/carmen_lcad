@@ -18,6 +18,8 @@
 #include "util.h"
 #include "model_predictive_planner_optimizer.h"
 
+#include <fstream>
+
 //#define PUBLISH_PLAN_TREE
 #ifdef PUBLISH_PLAN_TREE
 #include "model/tree.h"
@@ -311,6 +313,10 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 		gsl_spline *phi_spline, double v0, double i_beta, double delta_t)
 {
 	//printf("cpvs: path size antes: %ld\n",path.size());
+	ofstream optimizer_prints;
+	optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
+	optimizer_prints << "cpvs: path size antes: " << path.size() << "\n";
+
 	gsl_interp_accel *acc = gsl_interp_accel_alloc();
 	
 	robot_state.x = 0.0;
@@ -375,6 +381,8 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 
 	gsl_interp_accel_free(acc);
 	//printf("cpvs: path size depois: %ld\n",path.size());
+	optimizer_prints << "cpvs: path size depois: " << path.size() << "\n";
+	optimizer_prints.close();
 	return (distance_traveled);
 }
 
@@ -460,9 +468,15 @@ simulate_car_from_parameters(TrajectoryDimensions &td,
 
 	Command command;
 	carmen_robot_and_trailer_traj_point_t robot_state;
+	ofstream optimizer_prints;
+	optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
+	optimizer_prints << "scfp" << "\n";
+	optimizer_prints << "scfp: path size antes: " << path.size() << "\n";
 	//printf("scfp\n");
 	//printf("scfp: path size antes: %ld\n",path.size());
 	double distance_traveled = compute_path_via_simulation(robot_state, command, path, tcp, phi_spline, v0, i_beta, delta_t);
+	optimizer_prints << "scfp: path size depois do compute path: " << path.size() << "\n";
+	optimizer_prints.close();
 	//printf("scfp: path size depos do compute path: %ld\n",path.size());
 	gsl_spline_free(phi_spline);
 
