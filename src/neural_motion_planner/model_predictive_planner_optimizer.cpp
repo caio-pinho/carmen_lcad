@@ -316,6 +316,10 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	ofstream optimizer_prints;
 	optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
 	optimizer_prints << "cpvs: path size antes: " << path.size() << "\n";
+	optimizer_prints << "cpvs: delta t: " << delta_t << "\n";
+	if (delta_t == 0.02) {
+		optimizer_prints << "cpvs: delta_t do eliminate_follower\n";
+	}
 
 	gsl_interp_accel *acc = gsl_interp_accel_alloc();
 	
@@ -333,6 +337,15 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	double distance_traveled = 0.0;
 	// Cada ponto na trajetoria marca uma posicao do robo e o delta_t para chegar aa proxima
 	path.push_back(convert_to_carmen_robot_and_trailer_path_point_t(robot_state, delta_t));
+	optimizer_prints << "cpvs: path size apos primeiro push_back: " << path.size() << "\n";
+	optimizer_prints << "cpvs: path[0].x: " << path[0].x << "\n";
+	optimizer_prints << "cpvs: path[0].y: " << path[0].y << "\n";
+	optimizer_prints << "cpvs: path[0].theta: " << path[0].theta << "\n";
+	optimizer_prints << "cpvs: path[0].beta: " << path[0].beta << "\n";
+	optimizer_prints << "cpvs: path[0].v: " << path[0].v << "\n";
+	optimizer_prints << "cpvs: path[0].phi: " << path[0].phi << "\n";
+	optimizer_prints << "cpvs: path[0].time: " << path[0].time << "\n";
+	optimizer_prints << "cpvs: tcp.tt: " << tcp.tt << "\n";
 	for (t = delta_t; t < tcp.tt; t += delta_t)
 	{
 		command.v = v0 + tcp.a * t;
@@ -341,7 +354,8 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 		else if (command.v < GlobalState::param_max_vel_reverse)
 			command.v = GlobalState::param_max_vel_reverse;
 
-		command.phi = gsl_spline_eval(phi_spline, t, acc);
+		//command.phi = gsl_spline_eval(phi_spline, t, acc);
+		command.phi = 0.0;
 
 //		if ((GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_SEMI_TRAILER) ||
 //			(GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_TRUCK_SEMI_TRAILER))
@@ -354,15 +368,25 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 
 		// Cada ponto na trajetoria marca uma posicao do robo e o delta_t para chegar aa proxima
 		path.push_back(convert_to_carmen_robot_and_trailer_path_point_t(robot_state, delta_t));
+		optimizer_prints << "cpvs: path size apos push_back dentro do for: " << path.size() << "\n";
+		optimizer_prints << "cpvs: path[" << path.size() -1 << "].x: " << path[path.size()-1].x << "\n";
+		optimizer_prints << "cpvs: path[" << path.size() -1 << "].y: " << path[path.size()-1].y << "\n";
+		optimizer_prints << "cpvs: path[" << path.size() -1 << "].theta: " << path[path.size()-1].theta << "\n";
+		optimizer_prints << "cpvs: path[" << path.size() -1 << "].beta: " << path[path.size()-1].beta << "\n";
+		optimizer_prints << "cpvs: path[" << path.size() -1 << "].v: " << path[path.size()-1].v << "\n";
+		optimizer_prints << "cpvs: path[" << path.size() -1 << "].phi: " << path[path.size()-1].phi << "\n";
+		optimizer_prints << "cpvs: path[" << path.size() -1 << "].time: " << path[path.size()-1].time << "\n";
 
 		if (GlobalState::eliminate_path_follower && (i > 70))
 			delta_t = multiple_delta_t;
 
+		optimizer_prints << "cpvs: i: " << i << "\n";
 		i++;
 	}
 
 	if ((tcp.tt - (t -  delta_t)) > 0.0)
 	{
+		optimizer_prints << "cpvs: entrou no (tcp.tt - (t -  delta_t)) > 0.0)\n";
 		double final_delta_t = tcp.tt - (t - delta_t);
 
 		command.v = v0 + tcp.a * tcp.tt;
@@ -382,6 +406,8 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	gsl_interp_accel_free(acc);
 	//printf("cpvs: path size depois: %ld\n",path.size());
 	optimizer_prints << "cpvs: path size depois: " << path.size() << "\n";
+	optimizer_prints << "cpvs: distance_traveled: " << distance_traveled << "\n";
+	
 	optimizer_prints.close();
 	return (distance_traveled);
 }
@@ -472,9 +498,11 @@ simulate_car_from_parameters(TrajectoryDimensions &td,
 	optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
 	optimizer_prints << "scfp" << "\n";
 	optimizer_prints << "scfp: path size antes: " << path.size() << "\n";
+	optimizer_prints.close();
 	//printf("scfp\n");
 	//printf("scfp: path size antes: %ld\n",path.size());
 	double distance_traveled = compute_path_via_simulation(robot_state, command, path, tcp, phi_spline, v0, i_beta, delta_t);
+	optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
 	optimizer_prints << "scfp: path size depois do compute path: " << path.size() << "\n";
 	optimizer_prints.close();
 	//printf("scfp: path size depos do compute path: %ld\n",path.size());
@@ -608,29 +636,39 @@ compute_a_and_t_from_s_foward(double s, double target_v,
 		TrajectoryControlParameters &tcp_seed,
 		ObjectiveFunctionParams *params)
 {
+	ofstream optimizer_prints;
+	optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
+
 	// https://www.wolframalpha.com/input/?i=solve+s%3Dv*x%2B0.5*a*x%5E2
 	double a = (target_v * target_v - target_td.v_i * target_td.v_i) / (2.0 * target_td.dist);
 	double v = target_td.v_i;
 	if (a == 0.0)
 	{
-		if (target_v != 0.0)
+		if (target_v != 0.0) {
 			tcp_seed.tt = s / target_v;
-		else
+			optimizer_prints << "a=0,target_v!=0, tcp_seed.tt: " << tcp_seed.tt << "\n";
+		} else {
 			tcp_seed.tt = 0.05;
+			optimizer_prints << "a=0,target_v=0, tcp_seed.tt: " << tcp_seed.tt << "\n";
+		}
 	}
 	else if (a > GlobalState::robot_config.maximum_acceleration_forward)
 	{
 		a = GlobalState::robot_config.maximum_acceleration_forward;
 		tcp_seed.tt = (sqrt(2.0 * a * s + v * v) - v) / a;
+		optimizer_prints << "a>max, tcp_seed.tt: " << tcp_seed.tt << "\n";
 	}
 	else if (a < -GlobalState::robot_config.maximum_deceleration_forward)
 	{
 		a = -GlobalState::robot_config.maximum_deceleration_forward;
 		tcp_seed.tt = (sqrt(2.0 * a * s + v * v) - v) / a;
 	}
-	else
+	else {
 		tcp_seed.tt = (target_v - target_td.v_i) / a;
-
+		optimizer_prints << "tcp_seed.tt: " << tcp_seed.tt << "\n";
+	}
+	optimizer_prints.close();
+	
 	if (tcp_seed.tt > 200.0)
 		tcp_seed.tt = 200.0;
 	if (tcp_seed.tt < 0.05)
@@ -1078,6 +1116,10 @@ mpp_optimization_function_f(const gsl_vector *x, void *params)
 		return (1000000.0);
 
 	TrajectoryDimensions td;
+	ofstream optimizer_prints;
+	optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
+	optimizer_prints << "scfp: chamando pelo mpp_optimization_function_f\n";
+	optimizer_prints.close();
 	vector<carmen_robot_and_trailer_path_point_t> path = simulate_car_from_parameters(td, tcp, my_params->target_td->v_i, my_params->target_td->beta_i);
 
 //	double beta_activation_factor = get_beta_activation_factor();
@@ -1151,6 +1193,10 @@ mpp_optimization_function_g(const gsl_vector *x, void *params)
 		return (1000000.0);
 
 	TrajectoryDimensions td;
+	ofstream optimizer_prints;
+	optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
+	optimizer_prints << "scfp: chamando pelo mpp_optimization_function_g\n";
+	optimizer_prints.close();
 	vector<carmen_robot_and_trailer_path_point_t> path = simulate_car_from_parameters(td, tcp, my_params->target_td->v_i, my_params->target_td->beta_i);
 
 	double path_to_lane_distance = 0.0;
@@ -1366,6 +1412,10 @@ double
 get_path_to_lane_distance(TrajectoryDimensions td,
 		TrajectoryControlParameters tcp, ObjectiveFunctionParams *my_params)
 {
+	ofstream optimizer_prints;
+	optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
+	optimizer_prints << "scfp: chamando pelo get_path_to_lane_distance\n";
+	optimizer_prints.close();
 	vector<carmen_robot_and_trailer_path_point_t> path = simulate_car_from_parameters(td, tcp, my_params->target_td->v_i, my_params->target_td->beta_i);
 	double path_to_lane_distance = 0.0;
 	if (my_params->use_lane && (my_params->detailed_lane.size() > 0) && (path.size() > 0))

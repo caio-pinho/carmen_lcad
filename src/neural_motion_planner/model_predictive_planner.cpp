@@ -597,18 +597,36 @@ get_path_from_optimized_tcp(vector<carmen_robot_and_trailer_path_point_t> &path,
 		TrajectoryDimensions td,
 		carmen_robot_and_trailer_pose_t *localizer_pose)
 {
+
+	
 	if (GlobalState::use_mpc) {
-		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i, 0.025);
+		ofstream optimizer_prints;
+		optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
+		optimizer_prints << "gpfot:entrou no use_mpc\n";
 		printf("gpfot:entrou no use_mpc\n");
+		optimizer_prints.close();
+		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i, 0.025);
 	} else if (use_unity_simulator) {
-		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i, 0.02);
+		ofstream optimizer_prints;
+		optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
+		optimizer_prints << "gpfot:entrou no use_unity_simulator\n";
+		optimizer_prints.close();
 		printf("gpfot:entrou no use_unity_simulator\n");
-	} else if (GlobalState::eliminate_path_follower) { //SEMPRE FOI POR ESSE CAMINHO
 		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i, 0.02);
+	} else if (GlobalState::eliminate_path_follower) { //SEMPRE FOI POR ESSE CAMINHO
+		ofstream optimizer_prints;
+		optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
+		optimizer_prints << "gpfot:entrou no eliminate_path_follower\n";
 		printf("gpfot:entrou no eliminate_path_follower\n");
+		optimizer_prints.close();
+		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i, 0.02);
 	} else {
-		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i);
+		ofstream optimizer_prints;
+		optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
+		optimizer_prints << "gpfot:entrou no else\n";
 		printf("gpfot:entrou no else\n");
+		optimizer_prints.close();
+		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i);
 	}
 	path_local = path;
 	if (path_has_loop(td.dist, otcp.sf))

@@ -1186,10 +1186,10 @@ static void
 navigator_ackerman_go_message_handler()
 {
 	//GlobalState::following_path = true;
-	new_commands();
-	//go();
+	//new_commands();
+	go();
 	//go_new_original();
-	GlobalState::following_path = true;
+	//GlobalState::following_path = true;
 }
 
 
