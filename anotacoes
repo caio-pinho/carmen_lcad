@@ -1,0 +1,57 @@
+Publishers:
+	publish_model_predictive_planner_motion_commands(vector<carmen_robot_and_trailer_path_point_t> path, double timestamp)
+		carmen_robot_ackerman_publish_motion_command(commands, num_commands, timestamp);
+		
+	publish_robot_ackerman_motion_commands_eliminating_path_follower(vector<carmen_robot_and_trailer_path_point_t> &original_path, double timestamp)
+		publish_model_predictive_planner_motion_commands(path, timestamp); SE COMENTAR AQUI NÃO RODA, O CAMINHO NÃO FICA VERMELHO (FICA VERDE)
+		
+	publish_model_predictive_planner_rrt_path_message(list<RRT_Path_Edge> path, double timestamp)
+		ENTENDER O QUE ACONTECE AQUI
+		pode ser que o problema seja a falta do Publisher_Util::publish_rrt_path_message(&msg): acho que não, o normal rodou sem isso aqui
+	
+	publish_path_follower_motion_commands(carmen_robot_and_trailer_motion_command_t *commands, int num_commands, double timestamp)
+		ENTROU NESSE DEPOIS QUE PAROU DE FOLLOWING PATH
+		
+	publish_path_follower_single_motion_command(double v, double phi, double timestamp)
+		publish_path_follower_motion_commands(commands, 2, timestamp);
+		
+	publish_model_predictive_planner_single_motion_command(double v, double phi, double timestamp)
+		publish_model_predictive_planner_motion_commands(path, timestamp);
+		publish_path_follower_single_motion_command(0.0, phi, timestamp);
+		
+	publish_navigator_ackerman_plan_message(carmen_robot_and_trailer_traj_point_t *path, int path_size)
+		Publisher_Util::publish_navigator_ackerman_plan_message(msg); testei sem esse, o normal rodou sem isso aqui
+		
+	publish_navigator_ackerman_status_message()
+		err = IPC_publishData(CARMEN_NAVIGATOR_ACKERMAN_STATUS_NAME, &msg); NÃO RODOU SEM ISSO AQUI (mas o caminho ficou verde, vermelho, mas não saiu do lugar)! 
+											Mas quando coloquei no new_commands também não rodou (o caminho não ficou vermelho).
+											
+		
+	publish_plan_tree_for_navigator_gui(Tree tree)
+		Publisher_Util::publish_plan_tree_message(tree); testei sem esse, o normal rodou sem isso aqui
+
+
+quando rodo pelo meu command, a linha verde desaparece quando clico no go (mesmo com following_path e sem o following_path)
+linha verde: Motion plan. no movimento normal, quando Go a linha verde é sobreposta pela linha vinho, que é a do obstacle avoider (que fica sobre a linha verde) e vai se deslocando em direção ao primeiro goal do path (que vai se movendo pra frente)
+só gerou a linha verde e a linha vinho com o NMP ligado no modo normal (depende do NMP para gerar a linha mesmo)
+	
+Funções:
+
+
+
+Handlers:
+	localize_ackerman_globalpos_message_handler(carmen_localize_ackerman_globalpos_message *msg)
+		*GlobalState::localizer_pose = {msg->globalpos.x, msg->globalpos.y, msg->globalpos.theta, msg->beta};
+		build_and_follow_path(msg->timestamp);
+		
+	simulator_ackerman_truepos_message_handler(carmen_simulator_ackerman_truepos_message *msg)
+		NÃO PASSOU POR AQUI
+		
+	path_goals_and_annotations_message_handler(carmen_behavior_selector_path_goals_and_annotations_message *msg)
+		GlobalState::set_goal_pose(goal_pose);
+		
+	base_ackerman_odometry_message_handler(carmen_base_ackerman_odometry_message *msg)
+	
+	behavior_selector_state_message_handler(carmen_behavior_selector_state_message *msg)
+	
+	carmen_obstacle_distance_mapper_compact_map_message_handler(carmen_obstacle_distance_mapper_compact_map_message *message)
