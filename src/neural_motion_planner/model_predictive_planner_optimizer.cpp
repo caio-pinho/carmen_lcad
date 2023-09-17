@@ -18,6 +18,9 @@
 #include "util.h"
 #include "model_predictive_planner_optimizer.h"
 
+#include "seqdense.h"
+#include "eml_net.h"
+#include "eml_common.h"
 #include <fstream>
 
 //#define PUBLISH_PLAN_TREE
@@ -355,7 +358,25 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 			command.v = GlobalState::param_max_vel_reverse;
 
 		//command.phi = gsl_spline_eval(phi_spline, t, acc);
-		command.phi = 0.0;
+		float values[9];// = { 7757527.502,-363658.677,-0.154,8.550,7757499.058,-363648.787,-0.527,7.656,0.033};
+			values[0] = GlobalState::goal_pose->x;
+			values[1] = GlobalState::goal_pose->y;
+			values[2] = GlobalState::goal_pose->theta;
+			values[3] = GlobalState::robot_config.max_v;
+			values[4] = GlobalState::localizer_pose->x;
+			values[5] = GlobalState::localizer_pose->y;
+			values[6] = GlobalState::localizer_pose->theta;
+			values[7] = GlobalState::last_odometry.v;
+			values[8] = GlobalState::last_odometry.phi;
+		float out[3];
+		int err = seqdense_regress(values, 9, out, 3);
+		optimizer_prints << "cpvs: out[1]: " << out[0] << "\n";
+		optimizer_prints << "cpvs: out[2]: " << out[1] << "\n";
+		optimizer_prints << "cpvs: out[3]: " << out[2] << "\n";
+		command.phi = out[1];
+		//command.phi = 0.0;
+		//command.phi = gsl_spline_eval(phi_spline, t, acc);
+
 
 //		if ((GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_SEMI_TRAILER) ||
 //			(GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_TRUCK_SEMI_TRAILER))

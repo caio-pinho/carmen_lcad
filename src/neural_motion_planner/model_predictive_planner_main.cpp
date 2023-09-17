@@ -30,9 +30,9 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
-#include "seqdense.h"
+/*#include "seqdense.h"
 #include "eml_net.h"
-#include "eml_common.h"
+#include "eml_common.h"*/
 
 bool enviou_goal = false;
 //#define save_rddf_to_file
@@ -370,7 +370,7 @@ new_commands()//double goal_x, double goal_y, double goal_theta, double target_v
 			values[7] = GlobalState::last_odometry.v;
 			values[8] = GlobalState::last_odometry.phi;*/
 			//values = {GlobalState::goal_pose->x, GlobalState::goal_pose->y, GlobalState::goal_pose->theta, GlobalState::robot_config.max_v, GlobalState::localizer_pose->x, GlobalState::localizer_pose->y, GlobalState::localizer_pose->theta, GlobalState::last_odometry.v, GlobalState::last_odometry.phi};
-			seqdense_regress(values, 9, command, 3);
+			//seqdense_regress(values, 9, command, 3);//COMENTEI AQUI PRA TIRAR O ERRO DO OUTRO ARQUIVO (funcao ja declarada)
 			printf("numero do comando: %d\n",numcmds);
 			commands[0].v = command[0];
 			commands[0].phi = command[1];
