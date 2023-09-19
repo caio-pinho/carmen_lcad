@@ -1,3 +1,127 @@
+Mapper constrói o mapa do ambiente ao redor
+
+Localizer estima o estado em relação à origem do mapa
+
+Path planning constrói o caminho da pose inicial para a pose final, obedecendo restrições de limites da via e parâmetros de operação do carro como velocidade máxima.
+
+High Level Decision Maker estabelece uma lane (pista, faixa) e um goal state nela (na lane), considerando regras de trânsito e o comportamento do trânsito.
+
+Motion Planner é responsável por planejar uma trajetória do estado atual para o goal state, enquanto segue a lane e evita eventuais obstáculos. A trajetória é composta por velocidade e comandos de ângulo do volante associados com tempos de execução.
+
+MPMP recebe um mapa, uma lane e um goal state a uma taxa de 20Hz e computa uma trajetória do estado atual para uma pose e velocidade da lane o mais próximo possível do goal state, enquanto seguindo a lane e evitando obstáculos, considerando cinemática e restrições dinâmicas do veículo, em contraste com o problema de path planning, que objetiva planejar um path (lista de pontos de passagem) considerando apenas restrições cinemáticas.
+
+Motion planning methods employ mainly state lattice, rapidly-exploring random tree (RRT), interpolation, optimization, and model predictive techniques [BAU15].
+
+In this work, the control 𝒖 is defined by the command of velocity and steering angle during a specific time variation, the time and steering angle control are parameterized as a spline. As shown below. 𝒖 = [𝑣,𝜑,𝑡]  𝜑 = 𝑠𝑝𝑙𝑖𝑛𝑒(∆𝑡)
+
+Alberto:
+O motion planner recebe o path (o caminho), o goal (no caminho) e a velocidade do goal e o estado atual do veículo. Ele gera uma trajetória (um sequência de estados até o estado final), onde o estado final é o estado que foi especificado (goal e a velocidade do goal).
+
+
+Handlers:
+(Registrado/subscrito)
+localize_ackerman_globalpos_message_handler: entra depois de alguns loops (talvez não, desde sempre).
+Seta a global state::localizer_pose com globalpos.x, globalpos.y globalpos.theta, e beta (oriundas da msg).
+Em seguida roda o build_and_follow_path(com o timestamp da msg)
+
+simulator_ackerman_truepos_message_handler: não entrou nesse handler;(não subscreveu pois não é use_truepos);
+
+(Registrado/subscrito)
+path_goals_and_annotations_message_handler: recebeu antes de iniciar a geração do path (provavelmente quando setei o goal);
+Seta goal_pose.x, goal_pose.y, goal_pose.theta (normalize antes de setar) e goal_pose.beta (todos oriundos da msg);
+Seta também o desired_v, comparando o goal_list.v com o param_max_vel e usando o menor entre eles. Corrige o robot_config.max_v.
+Seta o set_goal_pose com o goal_pose (parâmetros recebidos da msg e setados anteriormente)
+
+(Registrado/subscrito)
+base_ackerman_odometry_message_handler: recebendo sempre, setando o globalstate::last_odometry.v e o last_odometry.phi com a msg recebida.
+Setou sempre o eliminate_path_follower = 1;
+
+(Registrado/subscrito)
+behavior_selector_state_message_handler: aparentemente recebendo sempre,
+
+
+Publishers:
+publish_robot_ackerman_motion_commands_eliminating_path_follower: transforma o path em smooth_short_path e depois publica em publish_model_predictive_planner_motion_commands(path, timestamp)
+
+desired_v = goal_list[0].v (lá na frente ficou = 0, enquanto last_odometry estava em 8.187 e robot_config.max_v_depois e target_v estava em 0.682003)
+Verificar qual o ponto é o goal_list[0] (de onde vem o goal_list[0].v), se o goal final, ou se o primeiro goal do path (é o mesmo do goal_pose)
+
+localizer_pose 7757512 coloquei aqui
+goal_pose (primeiro) 7757522 / 7757523
+goal_pose (ultimo) 7757583 final_goal coloquei 7757583
+Quando gera o goal ( quando aperta o compute route), o goal é o primeiro goal, e a velocidade já é a final 8.55
+Goal: 7757522.59, -363657.77, -0.209 (-11.97 deg) (30.78km/h, 8.55 m/s)
+Num_commands variando de 27 a 142. Começou em 139, quando andou caiu, chegou a 88, subiu até 142 e caiu até 27.
+
+msg.path[99].p2.beta gerando um número gigantesco
+.p2.x é o próximo .p1.x (y tb)
+Primeiro gera os commands, e depois constrói-se os msg.path. 
+v=8.546, t = 0.06 (penúltimo command, o próximo é 8.550, t=0.000 (112, na verdade 113o comando (começa em 0))).
+
+Gera na ordem:
+desired_v, target_v, localizer_pose (x, y, theta), last_odometry (v, phi), goal_pose (x,y, theta), msg_path[0] (p1.x, p2.x, p1.y, p2.y, p1.v, p2.v, v, p1.phi, p2.phi, phi, p1.beta, p2.beta, p1.theta, p2.theta), goal_pose (x, y, theta), msg_path[1]. goal_pose, msg_path[2], goal_pose…msg_path[134], repete:
+desired_v, GOAL_LIST[0].v, target_v, localizer_pose, last_odometry, goal_pose, msg_path
+
+Reduzindo o número de comandos para 10, parou de gerar os comandos após possível colisão
+Com 10 comandos, o obstacle avoider plan as vezes gera uma rota circular (arquivo salvo na pasta carmen_lcad)
+Zerando o x, y, theta e beta (sobrando apenas v, phi, t) dos comandos gerados, ainda executou normalmente (sem limitar a quantidade de comandos rodou perfeitamente até o final).
+Com os valores acima zerados e alterando o t para 1.0, não saiu do lugar (gerou uma linha curva do obstacle avoider plan).
+Com os valores acima zerados e alterando o t para 0.02, executou perfeitamente (possibilidade de predizer apenas v e phi, mantendo t constante)
+Com o tempo em 0.02 e setando o v para 0.016, não saiu do lugar.
+Com o tempo em 0.02 e setando o v para 0.24, andou lentamente (1.0 km/h, 0.26 m/s).
+Com o tempo em 0.02 e setando o v para 0.7, andou menos lentamente (2.8 km/h, 0.77 m/s).
+Com o tempo em 0.02 e setando o v para 3.0, andou rapidamente (10.8 km/h, 2.99 m/s), e executou o previsto (mesmo na curva), porém estacionou fora da pose (em um dos testes passou o destino e continuou seguindo na via (OFFROAD_ERROR)).
+Com o phi setado em 0, o carro andou até encontrar um objeto (foi andando em linha reta até sair ligeiramente da pista, onde encontrou um objeto acabou parando).
+
+
+Com 25 comandos rodou relativamente bem (não foi até o final do trajeto).
+Com 50 comandos foi até mais próximo do final do trajeto.
+Com 100 comandos o NMP morreu (faltaram comandos para preencher). Setado no seguinte caminho:
+for (std::vector<carmen_robot_and_trailer_path_point_t>::iterator it = path.begin();   it != path.end(); ++it)//i < 100; ++it)//it != path.end(); ++it)
+
+
+
+
+Low Level State: Free_Running em ambos os casos (tentar achar o Route Planner State: EXECUTING_OFFROAD_PLAN
+Sem o obstacle_avoider carro não andou, sem o behavior também não
+
+11518 começou a andar, 11581 zerou a velocidade. Gerou 2000 num_commands com 152 comandos (152 linhas de commands timestamp no mesmo milissegundo, depois 304 no mesmo milissegundo, depois 456 no mesmo milissegundo, depois 304, depois 304, depois 304, depois 456, depois 304..) (até a linha 2.241.221), e seguiu gerando num_commands com variações (135, 136, …). Os num_commands com variações (que provavelmente foram os movimentos reais), geraram com diferença de timestamp de aprox. 0.050 entre um e outro, enquanto os comandos gerados por mim geraram em sequência de 0.001 de diferença.
+
+15396 começou a andar15433 morreu. 134 comandos com o mesmo timestamp, pulou 0.052 para o próximo commands timestamp.
+Segundo commands timestamp gerou 135 linhas de comando.
+
+
+Viewer 3D:
+Linha verde grossa: Motion Plan
+Show Path Plans: mostra as linhas das vias e possíveis caminhos
+
+Sem o NMP o Compute Route ainda funciona, gera o caminho, os paths e plota no mapa (não é necessário o NMP para gerar o caminho)
+Mínimo funcionando para gerar o caminho: route_planner e behavior_selector (não precisa do offroad_planner, não precisa do NMP e não precisa do obstacle_avoider).
+Só com o route_planner ele gera uma linha azul em cima da linha da rua mas não gera as poses do carro ao longo dessa linha azul. Quando liga o behavior selector as poses e os fachos de linhas verdes ao longo do caminho aparecem
+
+O behavior_selector (BS)  (i) computa um conjunto de paths usando Frenet Frames; (ii) escolhe um goal que possa ser alcançado sem colisão em cada path; (iii) determina a velocidade em cada um destes goals; (iv) e escolhe o melhor conjunto path/goal/velocidade do goal.
+
+Rodando o GO sem o Compute Route, o carro seguiu os comandos enviados no Go personalizado com single motion command editado (sem rota planejada, seguiu reto, mas andou!)
+Gerando uma única sequência de 136 comandos, com v=3 e t=10, quase andou (v foi a 0.3 e voltou pra 0, mas não saiu do lugar).
+Invertendo a lógica, gerando 300 sequências de 1 comando, com v=3 e t=10, andou por vários segundos (aproximadamente 10 segundos, 0.049 km) em linha reta!
+Simulando o mesmo teste anterior, porém com 1500 sequências do mesmo 1 comando anterior, percorreu 0.091 km em linha reta (não respeitando possíveis objetos no caminho, seguiu sem parar), por aproximadamente 46 segundos. A velocidade não variou muito, não passando de cerca de 6 km/h (planejado era 3 m/s, ou seja, 10,8 km/h).
+
+Clicando no Compute Route, ele chama uma função carmen_route_planner_set_destination(char *destination, carmen_point_t destination_point);
+
+Build_and_follow_path: não é necessário rodar para gerar as poses (path e goals), comentei e mesmo assim gerou a rota.
+New_commands com following_path = true, não move.
+
+Sequência lógica:
+Pressionando o Go (com o compute route previamente pressionado), o GlobalState::following_path = true;
+
+
+Pensando de maneira lógica:
+
+Preciso do goal (primeiro goal do path) para calcular os comandos;
+Onde são gerados os goals do path?
+
+
+
 Publishers:
 	publish_model_predictive_planner_motion_commands(vector<carmen_robot_and_trailer_path_point_t> path, double timestamp)
 		carmen_robot_ackerman_publish_motion_command(commands, num_commands, timestamp);
@@ -34,6 +158,7 @@ Publishers:
 quando rodo pelo meu command, a linha verde desaparece quando clico no go (mesmo com following_path e sem o following_path)
 linha verde: Motion plan. no movimento normal, quando Go a linha verde é sobreposta pela linha vinho, que é a do obstacle avoider (que fica sobre a linha verde) e vai se deslocando em direção ao primeiro goal do path (que vai se movendo pra frente)
 só gerou a linha verde e a linha vinho com o NMP ligado no modo normal (depende do NMP para gerar a linha mesmo)
+Compilar o predict_commands: gcc predict_commands.c -lm -o predict_commands
 	
 Funções:
 

@@ -18,10 +18,10 @@
 #include "util.h"
 #include "model_predictive_planner_optimizer.h"
 
+#include <fstream>
 #include "seqdense.h"
 #include "eml_net.h"
 #include "eml_common.h"
-#include <fstream>
 
 //#define PUBLISH_PLAN_TREE
 #ifdef PUBLISH_PLAN_TREE
@@ -349,6 +349,12 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	optimizer_prints << "cpvs: path[0].phi: " << path[0].phi << "\n";
 	optimizer_prints << "cpvs: path[0].time: " << path[0].time << "\n";
 	optimizer_prints << "cpvs: tcp.tt: " << tcp.tt << "\n";
+
+	float values[9];// = {7757527.502,-363658.677,-0.154,8.550,7757499.058,-363648.787,-0.527,7.656,0.033};
+	float out[3];
+
+	//values = {GlobalState::goal_pose->x, GlobalState::goal_pose->y, GlobalState::goal_pose->theta, GlobalState::robot_config.max_v, GlobalState::localizer_pose->x, GlobalState::localizer_pose->y, GlobalState::localizer_pose->theta, GlobalState::last_odometry.v, GlobalState::last_odometry.phi};
+
 	for (t = delta_t; t < tcp.tt; t += delta_t)
 	{
 		command.v = v0 + tcp.a * t;
@@ -358,7 +364,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 			command.v = GlobalState::param_max_vel_reverse;
 
 		//command.phi = gsl_spline_eval(phi_spline, t, acc);
-		float values[9];// = { 7757527.502,-363658.677,-0.154,8.550,7757499.058,-363648.787,-0.527,7.656,0.033};
+		command.phi = 0.0;
 			values[0] = GlobalState::goal_pose->x;
 			values[1] = GlobalState::goal_pose->y;
 			values[2] = GlobalState::goal_pose->theta;
@@ -368,14 +374,11 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 			values[6] = GlobalState::localizer_pose->theta;
 			values[7] = GlobalState::last_odometry.v;
 			values[8] = GlobalState::last_odometry.phi;
-		float out[3];
-		int err = seqdense_regress(values, 9, out, 3);
-		optimizer_prints << "cpvs: out[1]: " << out[0] << "\n";
-		optimizer_prints << "cpvs: out[2]: " << out[1] << "\n";
-		optimizer_prints << "cpvs: out[3]: " << out[2] << "\n";
-		command.phi = out[1];
-		//command.phi = 0.0;
-		//command.phi = gsl_spline_eval(phi_spline, t, acc);
+			seqdense_regress(values, 9, out, 3);	
+			//command.phi = out[1];
+			optimizer_prints << "cpvs: command.phi_t: " << t << "\n";
+			optimizer_prints << "cpvs: values: " << values[0] << "," << values[1] << "," << values[2] << "," << values[3] << "," << values[4] << "," << values[5] << "," << values[6] << "," << values[7] << "," << values[8] << "\n";
+			optimizer_prints << "cpvs: command.phi: " << out[1] << "\n";
 
 
 //		if ((GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_SEMI_TRAILER) ||
