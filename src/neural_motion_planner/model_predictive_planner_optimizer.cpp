@@ -363,7 +363,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 		else if (command.v < GlobalState::param_max_vel_reverse)
 			command.v = GlobalState::param_max_vel_reverse;
 
-		command.phi = gsl_spline_eval(phi_spline, t, acc);
+		//	command.phi = gsl_spline_eval(phi_spline, t, acc);
 		//command.phi = 0.0;
 			values[0] = GlobalState::goal_pose->x;
 			values[1] = GlobalState::goal_pose->y;
@@ -374,8 +374,8 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 			values[6] = GlobalState::localizer_pose->theta;
 			values[7] = GlobalState::last_odometry.v;
 			values[8] = GlobalState::last_odometry.phi;
-			//seqdense_regress(values, 9, out, 3);	
-			//command.phi = out[1];
+			seqdense_regress(values, 9, out, 3);	
+			command.phi = out[1];
 			//COMENTADO PARA DATASET optimizer_prints << "cpvs: command.phi_t: " << t << "\n";
 			//COMENTADO PARA DATASET optimizer_prints << "cpvs: values: " << values[0] << "," << values[1] << "," << values[2] << "," << values[3] << "," << values[4] << "," << values[5] << "," << values[6] << "," << values[7] << "," << values[8] << "\n";
 			//COMENTADO PARA DATASET optimizer_prints << "cpvs: command.phi: " << out[1] << "\n";
