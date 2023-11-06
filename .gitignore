@@ -727,3 +727,5 @@ bin/all_publishers_-1.txt
 bin/all_publishers_-2.txt
 bin/optimizer_prints_gerando_primeiros_phi.txt
 bin/optimizer_prints_gerando_phi_normal.txt
+1.pytorch_tensors_tutorial.ipynb
+pytorch_quickstart_tutorial.ipynb
