@@ -729,3 +729,16 @@ bin/optimizer_prints_gerando_primeiros_phi.txt
 bin/optimizer_prints_gerando_phi_normal.txt
 1.pytorch_tensors_tutorial.ipynb
 pytorch_quickstart_tutorial.ipynb
+pytorch_cpp/libtorch/lib/libbackend_with_compiler.so
+pytorch_cpp/libtorch/lib/libc10.so
+pytorch_cpp/libtorch/lib/libfbjni.so
+pytorch_cpp/libtorch/lib/libgomp-a34b3233.so.1
+pytorch_cpp/libtorch/lib/libjitbackend_test.so
+pytorch_cpp/libtorch/lib/libnnapi_backend.so
+pytorch_cpp/libtorch/lib/libpytorch_jni.so
+pytorch_cpp/libtorch/lib/libshm.so
+pytorch_cpp/libtorch/lib/libtorch_cpu.so
+pytorch_cpp/libtorch/lib/libtorch_global_deps.so
+pytorch_cpp/libtorch/lib/libtorch_python.so
+pytorch_cpp/libtorch/lib/libtorch.so
+pytorch_cpp/libtorch/lib/libtorchbind_test.so

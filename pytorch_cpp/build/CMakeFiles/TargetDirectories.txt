@@ -1,0 +1,3 @@
+/mnt/Dados/caiopinho/carmen_lcad/pytorch_cpp/build/CMakeFiles/rebuild_cache.dir
+/mnt/Dados/caiopinho/carmen_lcad/pytorch_cpp/build/CMakeFiles/edit_cache.dir
+/mnt/Dados/caiopinho/carmen_lcad/pytorch_cpp/build/CMakeFiles/test.dir
