@@ -7,7 +7,7 @@
   torch::Tensor tensor = torch::rand({2, 3});
   std::cout << tensor << std::endl;
 }*/
-int main() {
+int main(int argc, char* argv[]) {
     // Load the Torch Script module
     auto module = torch::jit::load("/mnt/Dados/caiopinho/carmen_lcad/model_clean.pt");
 
@@ -17,7 +17,11 @@ int main() {
 
 
 // Assuming that 'x' is a vector of input features
-std::vector<float> x = {7757750.975, -363847.325, -2.485, 2.5, 7757759.112, -363841.075, -2.485, 2.902, 0.0};
+std::vector<float> x;// = {7757750.975, -363847.325, -2.485, 2.5, 7757759.112, -363841.075, -2.485, 2.902, 0.0};
+
+for (int i = 0; i < argc-1; i++) {
+    x.push_back(atof(argv[i+1]));
+}
 
 // The mean and standard deviation of each feature
 std::vector<float> mean = {7757219.02030919, -363790.45257479, 0.02507255, 7.59847813, 7757221.91891166, -363789.01252881, 0.02444362, 7.47429562, -0.00269055};
