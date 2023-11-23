@@ -4225,6 +4225,7 @@ CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/c10/util/DimVector.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/c10/util/Exception.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/c10/util/ExclusivelyOwned.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/c10/util/ExclusivelyOwnedTensorTraits.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/c10/util/FbcodeMaps.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/c10/util/Flags.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/c10/util/Float8_e4m3fn-inl.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/c10/util/Float8_e4m3fn.h
@@ -4287,6 +4288,10 @@ CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/c10/util/string_view.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/c10/util/strong_type.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/c10/util/typeid.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/c10/util/variant.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/caffe2/serialize/inline_container.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/caffe2/serialize/istream_adapter.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/caffe2/serialize/read_adapter_interface.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/caffe2/serialize/versions.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/pybind11/attr.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/pybind11/buffer_info.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/pybind11/cast.h
@@ -4464,6 +4469,7 @@ CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/api/include/torch
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/api/include/torch/types.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/api/include/torch/utils.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/api/include/torch/version.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/autograd/InferenceMode.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/autograd/anomaly_mode.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/autograd/autograd.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/autograd/autograd_not_implemented_fallback.h
@@ -4492,10 +4498,21 @@ CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/api/function_
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/api/method.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/api/module.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/api/object.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/error_report.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/function_schema_parser.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/lexer.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/name_mangler.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/parser_constants.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/resolver.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/schema_matching.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/script_type_parser.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/source_range.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/strtod.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/sugared_value.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/tracer.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/tree.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/tree_views.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/frontend/versioned_symbols.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/ir/attributes.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/ir/constants.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/ir/graph_node_list.h
@@ -4504,12 +4521,17 @@ CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/ir/named_valu
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/ir/scope.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/python/update_graph_executor_opt.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/runtime/argument_spec.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/runtime/custom_operator.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/runtime/graph_executor.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/runtime/interpreter.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/runtime/jit_exception.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/runtime/operator.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/runtime/operator_options.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/runtime/variable_tensor_list.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/serialization/import.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/serialization/pickle.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/serialization/pickler.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/jit/serialization/unpickler.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/profiler/api.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/profiler/events.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/profiler/orchestration/observer.h
@@ -4534,5 +4556,6 @@ CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/custom_class_detail.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/extension.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/library.h
 CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/csrc/api/include/torch/torch.h
+CMakeFiles/test.dir/test.cpp.o: ../libtorch/include/torch/script.h
 CMakeFiles/test.dir/test.cpp.o: ../test.cpp
 

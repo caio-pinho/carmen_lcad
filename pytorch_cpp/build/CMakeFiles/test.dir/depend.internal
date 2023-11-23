@@ -4226,6 +4226,7 @@ CMakeFiles/test.dir/test.cpp.o
  ../libtorch/include/c10/util/Exception.h
  ../libtorch/include/c10/util/ExclusivelyOwned.h
  ../libtorch/include/c10/util/ExclusivelyOwnedTensorTraits.h
+ ../libtorch/include/c10/util/FbcodeMaps.h
  ../libtorch/include/c10/util/Flags.h
  ../libtorch/include/c10/util/Float8_e4m3fn-inl.h
  ../libtorch/include/c10/util/Float8_e4m3fn.h
@@ -4288,6 +4289,10 @@ CMakeFiles/test.dir/test.cpp.o
  ../libtorch/include/c10/util/strong_type.h
  ../libtorch/include/c10/util/typeid.h
  ../libtorch/include/c10/util/variant.h
+ ../libtorch/include/caffe2/serialize/inline_container.h
+ ../libtorch/include/caffe2/serialize/istream_adapter.h
+ ../libtorch/include/caffe2/serialize/read_adapter_interface.h
+ ../libtorch/include/caffe2/serialize/versions.h
  ../libtorch/include/pybind11/attr.h
  ../libtorch/include/pybind11/buffer_info.h
  ../libtorch/include/pybind11/cast.h
@@ -4465,6 +4470,7 @@ CMakeFiles/test.dir/test.cpp.o
  ../libtorch/include/torch/csrc/api/include/torch/types.h
  ../libtorch/include/torch/csrc/api/include/torch/utils.h
  ../libtorch/include/torch/csrc/api/include/torch/version.h
+ ../libtorch/include/torch/csrc/autograd/InferenceMode.h
  ../libtorch/include/torch/csrc/autograd/anomaly_mode.h
  ../libtorch/include/torch/csrc/autograd/autograd.h
  ../libtorch/include/torch/csrc/autograd/autograd_not_implemented_fallback.h
@@ -4493,10 +4499,21 @@ CMakeFiles/test.dir/test.cpp.o
  ../libtorch/include/torch/csrc/jit/api/method.h
  ../libtorch/include/torch/csrc/jit/api/module.h
  ../libtorch/include/torch/csrc/jit/api/object.h
+ ../libtorch/include/torch/csrc/jit/frontend/error_report.h
  ../libtorch/include/torch/csrc/jit/frontend/function_schema_parser.h
+ ../libtorch/include/torch/csrc/jit/frontend/lexer.h
  ../libtorch/include/torch/csrc/jit/frontend/name_mangler.h
+ ../libtorch/include/torch/csrc/jit/frontend/parser_constants.h
+ ../libtorch/include/torch/csrc/jit/frontend/resolver.h
+ ../libtorch/include/torch/csrc/jit/frontend/schema_matching.h
+ ../libtorch/include/torch/csrc/jit/frontend/script_type_parser.h
  ../libtorch/include/torch/csrc/jit/frontend/source_range.h
+ ../libtorch/include/torch/csrc/jit/frontend/strtod.h
+ ../libtorch/include/torch/csrc/jit/frontend/sugared_value.h
  ../libtorch/include/torch/csrc/jit/frontend/tracer.h
+ ../libtorch/include/torch/csrc/jit/frontend/tree.h
+ ../libtorch/include/torch/csrc/jit/frontend/tree_views.h
+ ../libtorch/include/torch/csrc/jit/frontend/versioned_symbols.h
  ../libtorch/include/torch/csrc/jit/ir/attributes.h
  ../libtorch/include/torch/csrc/jit/ir/constants.h
  ../libtorch/include/torch/csrc/jit/ir/graph_node_list.h
@@ -4505,12 +4522,17 @@ CMakeFiles/test.dir/test.cpp.o
  ../libtorch/include/torch/csrc/jit/ir/scope.h
  ../libtorch/include/torch/csrc/jit/python/update_graph_executor_opt.h
  ../libtorch/include/torch/csrc/jit/runtime/argument_spec.h
+ ../libtorch/include/torch/csrc/jit/runtime/custom_operator.h
  ../libtorch/include/torch/csrc/jit/runtime/graph_executor.h
  ../libtorch/include/torch/csrc/jit/runtime/interpreter.h
  ../libtorch/include/torch/csrc/jit/runtime/jit_exception.h
  ../libtorch/include/torch/csrc/jit/runtime/operator.h
  ../libtorch/include/torch/csrc/jit/runtime/operator_options.h
  ../libtorch/include/torch/csrc/jit/runtime/variable_tensor_list.h
+ ../libtorch/include/torch/csrc/jit/serialization/import.h
+ ../libtorch/include/torch/csrc/jit/serialization/pickle.h
+ ../libtorch/include/torch/csrc/jit/serialization/pickler.h
+ ../libtorch/include/torch/csrc/jit/serialization/unpickler.h
  ../libtorch/include/torch/csrc/profiler/api.h
  ../libtorch/include/torch/csrc/profiler/events.h
  ../libtorch/include/torch/csrc/profiler/orchestration/observer.h
@@ -4535,4 +4557,5 @@ CMakeFiles/test.dir/test.cpp.o
  ../libtorch/include/torch/extension.h
  ../libtorch/include/torch/library.h
  /mnt/Dados/caiopinho/carmen_lcad/pytorch_cpp/libtorch/include/torch/csrc/api/include/torch/torch.h
+ /mnt/Dados/caiopinho/carmen_lcad/pytorch_cpp/libtorch/include/torch/script.h
  /mnt/Dados/caiopinho/carmen_lcad/pytorch_cpp/test.cpp
