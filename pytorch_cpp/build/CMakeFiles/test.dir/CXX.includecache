@@ -92513,6 +92513,8 @@ ATen/ATen.h
 -
 iostream
 -
+vector
+-
 /mnt/Dados/caiopinho/carmen_lcad/pytorch_cpp/libtorch/include/torch/script.h
 -
 
