@@ -22,6 +22,9 @@
 #include "seqdense.h"
 #include "eml_net.h"
 #include "eml_common.h"
+#include </mnt/Dados/caiopinho/carmen_lcad/pytorch_cpp/libtorch/include/torch/csrc/api/include/torch/torch.h>
+#include <vector>
+#include </mnt/Dados/caiopinho/carmen_lcad/pytorch_cpp/libtorch/include/torch/script.h>
 
 //#define PUBLISH_PLAN_TREE
 #ifdef PUBLISH_PLAN_TREE
@@ -353,6 +356,15 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	float values[9];// = {7757527.502,-363658.677,-0.154,8.550,7757499.058,-363648.787,-0.527,7.656,0.033};
 	float out[3];
 
+	auto module = torch::jit::load("/mnt/Dados/caiopinho/carmen_lcad/model_clean.pt");
+	std::vector<float> mean = {7757219.02030919, -363790.45257479, 0.02507255, 7.59847813, 7757221.91891166, -363789.01252881, 0.02444362, 7.47429562, -0.00269055};
+	std::vector<float> std_dev = {419.98896269, 203.30314877, 2.00996865, 1.96946407, 420.14477201, 203.81701318, 2.01436103, 1.86837855, 0.05217095};
+	std::vector<float> x;// = {7757750.975, -363847.325, -2.485, 2.5, 7757759.112, -363841.075, -2.485, 2.902, 0.0};
+
+	for (int i = 0; i < argc-1; i++) {
+    x.push_back(atof(argv[i+1]));
+	}
+
 	//values = {GlobalState::goal_pose->x, GlobalState::goal_pose->y, GlobalState::goal_pose->theta, GlobalState::robot_config.max_v, GlobalState::localizer_pose->x, GlobalState::localizer_pose->y, GlobalState::localizer_pose->theta, GlobalState::last_odometry.v, GlobalState::last_odometry.phi};
 
 	for (t = delta_t; t < tcp.tt; t += delta_t)
@@ -365,7 +377,30 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 
 		//	command.phi = gsl_spline_eval(phi_spline, t, acc);
 		//command.phi = 0.0;
-			values[0] = GlobalState::goal_pose->x;
+			x.push_back(GlobalState::goal_pose->x);
+			x.push_back(GlobalState::goal_pose->y);
+			x.push_back(GlobalState::goal_pose->theta);
+			x.push_back(GlobalState::robot_config.max_v);
+			x.push_back(GlobalState::localizer_pose->x);
+			x.push_back(GlobalState::localizer_pose->y);
+			x.push_back(GlobalState::localizer_pose->theta);
+			x.push_back(GlobalState::last_odometry.v);
+			x.push_back(GlobalState::last_odometry.phi);
+
+			torch::Tensor t = torch::tensor({{x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8]}});
+
+			// Create a vector to hold the inputs to the model
+			std::vector<torch::jit::IValue> inputs;
+			inputs.push_back(t);
+			//inputs.push_back(torch::ones({1, 9}));  // Adjust as necessary
+
+			// Forward pass
+			at::Tensor output = module.forward(inputs).toTensor();
+
+			// Print the output
+			std::cout << output << std::endl;
+
+			/*values[0] = GlobalState::goal_pose->x;
 			values[1] = GlobalState::goal_pose->y;
 			values[2] = GlobalState::goal_pose->theta;
 			values[3] = GlobalState::robot_config.max_v;
@@ -373,7 +408,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 			values[5] = GlobalState::localizer_pose->y;
 			values[6] = GlobalState::localizer_pose->theta;
 			values[7] = GlobalState::last_odometry.v;
-			values[8] = GlobalState::last_odometry.phi;
+			values[8] = GlobalState::last_odometry.phi;*/
 			seqdense_regress(values, 9, out, 3);	
 			command.phi = out[1];
 			//COMENTADO PARA DATASET optimizer_prints << "cpvs: command.phi_t: " << t << "\n";
