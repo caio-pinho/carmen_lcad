@@ -42,8 +42,18 @@ torch::Tensor t = torch::tensor({{x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7]
     // Forward pass
     at::Tensor output = module.forward(inputs).toTensor();
 
+    std::vector<float> output_vector(output.data_ptr<float>(), output.data_ptr<float>() + output.numel());
+
+
     // Print the output
-    std::cout << output << std::endl;
+    //std::cout << output_vector << std::endl;
+   /* for (size_t i = 0; i < output_vector.size(); ++i) {
+    std::cout << i << output_vector[i] << std::endl;
+}*/
+
+for (size_t i = 1; i < output_vector.size(); i += 3) {
+    std::cout << i << ": " << output_vector[i] << std::endl;
+}
 
     return 0;
 }

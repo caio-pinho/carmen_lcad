@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 project(test)
 
 find_package(Torch REQUIRED)
+message(STATUS "TORCH_LIBRARIES: ${TORCH_LIBRARIES}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 add_executable(test test.cpp)

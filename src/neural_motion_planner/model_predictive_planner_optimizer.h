@@ -13,6 +13,9 @@
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_multimin.h>
 #include <car_model.h>
+#include "/mnt/Dados/caiopinho/carmen_lcad/src/neural_motion_planner/libtorch/include/torch/csrc/api/include/torch/torch.h"
+#include <vector>
+#include "/mnt/Dados/caiopinho/carmen_lcad/src/neural_motion_planner/libtorch/include/torch/script.h"
 
 using namespace std;
 
