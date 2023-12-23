@@ -18,6 +18,7 @@ int main(int argc, char* argv[]) {
 
 // Assuming that 'x' is a vector of input features
 std::vector<float> x;// = {7757750.975, -363847.325, -2.485, 2.5, 7757759.112, -363841.075, -2.485, 2.902, 0.0};
+//7757750.975 -363847.325 -2.485 2.5 7757759.112 -363841.075 -2.485 2.902 0.0
 
 for (int i = 0; i < argc-1; i++) {
     x.push_back(atof(argv[i+1]));
@@ -47,13 +48,14 @@ torch::Tensor t = torch::tensor({{x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7]
 
     // Print the output
     //std::cout << output_vector << std::endl;
-   /* for (size_t i = 0; i < output_vector.size(); ++i) {
-    std::cout << i << output_vector[i] << std::endl;
-}*/
-
-for (size_t i = 1; i < output_vector.size(); i += 3) {
-    std::cout << i << ": " << output_vector[i] << std::endl;
+    for (size_t i = 0; i < output_vector.size(); ++i) {
+    //std::cout << std::fixed << std::setprecision(3) << "i:" << i << " valor:" << output_vector[i] << std::endl;
+    std::cout << "i:" << i << " valor:" << output_vector[i] << std::endl;
 }
+
+/*for (size_t i = 1; i < output_vector.size(); i += 3) {
+    std::cout << i << ": " << output_vector[i] << std::endl;
+}*/
 
     return 0;
 }

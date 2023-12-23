@@ -1,0 +1,17 @@
+CMakeLists to Makefile
+
+# C++ compiler
+CXX = g++
+
+# Path to the LibTorch distribution
+LIBTORCH = /path/to/libtorch
+
+# Compiler flags
+CXXFLAGS = -I $(LIBTORCH)/include -I $(LIBTORCH)/include/torch/csrc/api/include -std=c++17
+
+# Linker flags
+LDFLAGS = -L $(LIBTORCH)/lib -ltorch -lc10
+
+# Your target
+test: test.cpp
+    $(CXX) $(CXXFLAGS) -o test test.cpp $(LDFLAGS)

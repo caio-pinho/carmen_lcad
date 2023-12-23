@@ -50,6 +50,7 @@ bool use_obstacles = true;
 
 extern int use_unity_simulator;
 
+auto module = torch::jit::load("/mnt/Dados/caiopinho/carmen_lcad/model_clean.pt");
 
 void
 plot_phi_profile(TrajectoryControlParameters tcp)
@@ -319,8 +320,8 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 		gsl_spline *phi_spline, double v0, double i_beta, double delta_t)
 {
 	//printf("cpvs: path size antes: %ld\n",path.size());
-	//COMENTADO PARA DATASET ofstream optimizer_prints;
-	//COMENTADO PARA DATASET optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
+	ofstream optimizer_prints;
+	optimizer_prints.open("optimizer_prints_estudo_phi.txt", ios::in | ios::app);
 	//COMENTADO PARA DATASET optimizer_prints << "cpvs: path size antes: " << path.size() << "\n";
 	//COMENTADO PARA DATASET optimizer_prints << "cpvs: delta t: " << delta_t << "\n";
 	//COMENTADO PARA DATASET if (delta_t == 0.02) {
@@ -353,14 +354,22 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	//COMENTADO PARA DATASET optimizer_prints << "cpvs: path[0].time: " << path[0].time << "\n";
 	//COMENTADO PARA DATASET optimizer_prints << "cpvs: tcp.tt: " << tcp.tt << "\n";
 
+	
 	float values[9];// = {7757527.502,-363658.677,-0.154,8.550,7757499.058,-363648.787,-0.527,7.656,0.033};
 	float out[3];
+	//torch::jit::script::Module module;
+	/*static bool module_loaded;
+	if (!module_loaded) {
+   		module_loaded = true;
+   		
+		std::cout << "module iniciado" << std::endl;
+	}*/
 
-	auto module = torch::jit::load("/mnt/Dados/caiopinho/carmen_lcad/model_clean.pt");
 	std::vector<float> mean = {7757219.02030919, -363790.45257479, 0.02507255, 7.59847813, 7757221.91891166, -363789.01252881, 0.02444362, 7.47429562, -0.00269055};
 	std::vector<float> std_dev = {419.98896269, 203.30314877, 2.00996865, 1.96946407, 420.14477201, 203.81701318, 2.01436103, 1.86837855, 0.05217095};
-	std::vector<float> x = {7757750.975, -363847.325, -2.485, 2.5, 7757759.112, -363841.075, -2.485, 2.902, 0.0};
-	/*x.push_back(GlobalState::goal_pose->x);
+	std::vector<float> x;// = {7757750.975, -363847.325, -2.485, 2.5, 7757759.112, -363841.075, -2.485, 2.902, 0.0};
+	
+	x.push_back(GlobalState::goal_pose->x);
 	x.push_back(GlobalState::goal_pose->y);
 	x.push_back(GlobalState::goal_pose->theta);
 	x.push_back(GlobalState::robot_config.max_v);
@@ -368,13 +377,22 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	x.push_back(GlobalState::localizer_pose->y);
 	x.push_back(GlobalState::localizer_pose->theta);
 	x.push_back(GlobalState::last_odometry.v);
-	x.push_back(GlobalState::last_odometry.phi);*/
+	if (GlobalState::last_odometry.v > 0.0)
+		x.push_back(GlobalState::last_odometry.phi);
+	else
+		x.push_back(0.0);
+	//x.push_back(GlobalState::last_odometry.phi);
+	
+	//std::cout << "vetor nao normalizado: " << x << std::endl;
+	optimizer_prints << std::fixed << std::setprecision(3) << "vetor nao normalizado: " << x << "\n";
 
 	// Scale the input features
-	for (size_t i = 0; i < x.size(); ++i) {
-    	x[i] = (x[i] - mean[i]) / std_dev[i];
+	for (size_t j = 0; j < x.size(); ++j) {
+    	x[j] = (x[j] - mean[j]) / std_dev[j];
 	}
-
+	//std::cout << "vetor normalizado: " << x << std::endl;
+	optimizer_prints << "vetor normalizado: " << x << "\n";
+	
 	torch::Tensor tensor_inputs = torch::tensor({{x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8]}});
 
 	// Create a vector to hold the inputs to the model
@@ -390,23 +408,41 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 
 
 	// Print the output
-	std::cout << output << std::endl;	
+	//std::cout << "vetor calculado: " << output_vector << std::endl;
+	optimizer_prints << "vetor calculado: " << output_vector << "\n";
 
 	x.clear();	
 	int z = 1;
 	//values = {GlobalState::goal_pose->x, GlobalState::goal_pose->y, GlobalState::goal_pose->theta, GlobalState::robot_config.max_v, GlobalState::localizer_pose->x, GlobalState::localizer_pose->y, GlobalState::localizer_pose->theta, GlobalState::last_odometry.v, GlobalState::last_odometry.phi};
-
-	for (t = delta_t; t < tcp.tt; t += delta_t)
+	
+	//std::cout << "tempo total: " << tcp.tt << std::endl;
+	optimizer_prints << "tempo total: " << tcp.tt << "\n";
+	//for (t = delta_t; t < tcp.tt; t += delta_t)//delta_t = 0.02, t=0.02, t<tcp.tt
+	for (t = delta_t; t < 0.3; t += delta_t)
+	//for (int k = 0; k < 50; k++)
 	{
+		optimizer_prints << "tempo atual: " << t << "\n";
+		//std::cout << "tempo atual: " << t << std::endl;	
 		command.v = v0 + tcp.a * t;
 		if (command.v > GlobalState::param_max_vel)
 			command.v = GlobalState::param_max_vel;
 		else if (command.v < GlobalState::param_max_vel_reverse)
 			command.v = GlobalState::param_max_vel_reverse;
-
-		//	command.phi = gsl_spline_eval(phi_spline, t, acc);
-		//command.phi = 0.0;
+		//command.v = 1.0;
+		optimizer_prints << "command.v:" << command.v << "\n";
 		command.phi = output_vector[z];
+		//command.phi = -0.050;
+		//std::cout << "command.phi" << z << ":" << command.phi << std::endl;	
+
+		//command.phi = gsl_spline_eval(phi_spline, t, acc);
+
+		//std::cout << "command.phi_neural" << z << ":" << output_vector[z] << std::endl;	
+		optimizer_prints << "command.phi_neural" << z << ":" << output_vector[z] << "\n";
+		optimizer_prints << "command.phi:" << command.phi << "\n";	
+		optimizer_prints << "command.phi_spline:" << gsl_spline_eval(phi_spline, t, acc) << "\n";
+		//RECALCULAR O PHI AQUI (NÃO USAR OS ANTIGOS)
+		//command.phi = 0.0;
+
 		z = z + 3;
 
 			/*values[0] = GlobalState::goal_pose->x;
@@ -451,9 +487,12 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 		//COMENTADO PARA DATASET optimizer_prints << "cpvs: i: " << i << "\n";
 		i++;
 	}
+	
 
 	if ((tcp.tt - (t -  delta_t)) > 0.0)
 	{
+		//std::cout << "entrou no tcp.tt-(t-delta_t)>): tcp.tt: " << tcp.tt << "t: " << t << "delta_t: " << delta_t << std::endl;
+		optimizer_prints << "entrou no tcp.tt-(t-delta_t)>): tcp.tt: " << tcp.tt << "t: " << t << "delta_t: " << delta_t << "\n";	
 		//COMENTADO PARA DATASET optimizer_prints << "cpvs: entrou no (tcp.tt - (t -  delta_t)) > 0.0)\n";
 		double final_delta_t = tcp.tt - (t - delta_t);
 
@@ -462,6 +501,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 			command.v = GlobalState::param_max_vel;
 		else if (command.v < GlobalState::param_max_vel_reverse)
 			command.v = GlobalState::param_max_vel_reverse;
+		//command.v = 1.0;
 		command.phi = gsl_spline_eval(phi_spline, tcp.tt, acc);
 
 		robot_state = carmen_libcarmodel_recalc_pos_ackerman(robot_state, command.v, command.phi, final_delta_t,
@@ -470,7 +510,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 		// Cada ponto na trajetoria marca uma posicao do robo e o delta_t para chegar aa proxima
 		path.push_back(convert_to_carmen_robot_and_trailer_path_point_t(robot_state, 0.0));
 	}
-
+	optimizer_prints.close();
 	gsl_interp_accel_free(acc);
 	//printf("cpvs: path size depois: %ld\n",path.size());
 	//COMENTADO PARA DATASET optimizer_prints << "cpvs: path size depois: " << path.size() << "\n";
