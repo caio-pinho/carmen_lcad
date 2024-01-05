@@ -367,6 +367,9 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 
 	std::vector<float> mean = {7757219.02030919, -363790.45257479, 0.02507255, 7.59847813, 7757221.91891166, -363789.01252881, 0.02444362, 7.47429562, -0.00269055};
 	std::vector<float> std_dev = {419.98896269, 203.30314877, 2.00996865, 1.96946407, 420.14477201, 203.81701318, 2.01436103, 1.86837855, 0.05217095};
+	//std::vector<float> mean = {7757220.09807177, -363788.6298811, 0.01382737, 7.60729115, 7757223.12119663, -363787.17344423, 0.02821917, 7.48223738, -0.00291552};
+	//std::vector<float> std_dev = {421.1738801, 202.33636103, 2.0122934, 1.95943106, 421.48077829, 202.77701364, 2.01787801, 1.86553719, 0.05171279};
+	
 	std::vector<float> x;// = {7757750.975, -363847.325, -2.485, 2.5, 7757759.112, -363841.075, -2.485, 2.902, 0.0};
 	
 	x.push_back(GlobalState::goal_pose->x);
@@ -417,8 +420,8 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	
 	//std::cout << "tempo total: " << tcp.tt << std::endl;
 	optimizer_prints << "tempo total: " << tcp.tt << "\n";
-	//for (t = delta_t; t < tcp.tt; t += delta_t)//delta_t = 0.02, t=0.02, t<tcp.tt
-	for (t = delta_t; t < 0.3; t += delta_t)
+	for (t = delta_t; t < tcp.tt; t += delta_t)//delta_t = 0.02, t=0.02, t<tcp.tt
+	//for (t = delta_t; t < 0.1; t += delta_t)
 	//for (int k = 0; k < 50; k++)
 	{
 		optimizer_prints << "tempo atual: " << t << "\n";
@@ -430,13 +433,17 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 			command.v = GlobalState::param_max_vel_reverse;
 		//command.v = 1.0;
 		optimizer_prints << "command.v:" << command.v << "\n";
-		command.phi = output_vector[z];
+		//command.v = output_vector[z-1];
+		//command.phi = output_vector[z];
+		//command.phi = 0.0;
+		
 		//command.phi = -0.050;
 		//std::cout << "command.phi" << z << ":" << command.phi << std::endl;	
 
-		//command.phi = gsl_spline_eval(phi_spline, t, acc);
+		command.phi = gsl_spline_eval(phi_spline, t, acc);
 
 		//std::cout << "command.phi_neural" << z << ":" << output_vector[z] << std::endl;	
+		optimizer_prints << "timestamp avaliar phi: " << carmen_get_time() << "\n";
 		optimizer_prints << "command.phi_neural" << z << ":" << output_vector[z] << "\n";
 		optimizer_prints << "command.phi:" << command.phi << "\n";	
 		optimizer_prints << "command.phi_spline:" << gsl_spline_eval(phi_spline, t, acc) << "\n";
@@ -489,12 +496,13 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	}
 	
 
-	if ((tcp.tt - (t -  delta_t)) > 0.0)
+	if ((tcp.tt - (t -  delta_t)) > 0.0)//tcp.tt = 5.071, t = 5.100, delta_t = 0.150; 5.071 - (5.100 - 0.150) = 0.121
 	{
 		//std::cout << "entrou no tcp.tt-(t-delta_t)>): tcp.tt: " << tcp.tt << "t: " << t << "delta_t: " << delta_t << std::endl;
 		optimizer_prints << "entrou no tcp.tt-(t-delta_t)>): tcp.tt: " << tcp.tt << "t: " << t << "delta_t: " << delta_t << "\n";	
 		//COMENTADO PARA DATASET optimizer_prints << "cpvs: entrou no (tcp.tt - (t -  delta_t)) > 0.0)\n";
-		double final_delta_t = tcp.tt - (t - delta_t);
+		double final_delta_t = tcp.tt - (t - delta_t);//5.071 - (5.100 - 0.150) = 0.121
+		optimizer_prints << "final_delta_t: " << final_delta_t << "\n";
 
 		command.v = v0 + tcp.a * tcp.tt;
 		if (command.v > GlobalState::param_max_vel)
@@ -503,6 +511,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 			command.v = GlobalState::param_max_vel_reverse;
 		//command.v = 1.0;
 		command.phi = gsl_spline_eval(phi_spline, tcp.tt, acc);
+		//command.phi = 0;
 
 		robot_state = carmen_libcarmodel_recalc_pos_ackerman(robot_state, command.v, command.phi, final_delta_t,
 				&distance_traveled, final_delta_t, GlobalState::robot_config, GlobalState::semi_trailer_config);
@@ -598,7 +607,7 @@ simulate_car_from_parameters(TrajectoryDimensions &td,
 	if (!tcp.valid)
 		return (path);
 
-	gsl_spline *phi_spline = get_phi_spline(tcp);
+	gsl_spline *phi_spline = get_phi_spline(tcp);//EDITEI AQUI PARA INATIVAR GERACAO DO SPLINE
 
 	Command command;
 	carmen_robot_and_trailer_traj_point_t robot_state;
@@ -614,7 +623,7 @@ simulate_car_from_parameters(TrajectoryDimensions &td,
 	//COMENTADO PARA DATASET optimizer_prints << "scfp: path size depois do compute path: " << path.size() << "\n";
 	//COMENTADO PARA DATASET optimizer_prints.close();
 	//printf("scfp: path size depos do compute path: %ld\n",path.size());
-	gsl_spline_free(phi_spline);
+	gsl_spline_free(phi_spline);//EDITEI AQUI PARA INATIVAR GERACAO DO SPLINE
 
 	carmen_robot_and_trailer_path_point_t furthest_point;
 	td.dist = get_max_distance_in_path(path, furthest_point);	// @@@ Alberto: Por que nao o ultimo do ponto do path?
@@ -623,7 +632,7 @@ simulate_car_from_parameters(TrajectoryDimensions &td,
 	td.phi_i = tcp.k[0];
 	td.v_i = v0;
 	tcp.vf = command.v;
-	tcp.sf = distance_traveled;
+	tcp.sf = distance_traveled;//EDITEI AQUI PARA INATIVAR GERACAO DO SPLINE
 	td.control_parameters = tcp;
 
 	return (path);
