@@ -1,0 +1,39 @@
+06/01/2024
+clean_cpu1: MSE: 0.00284, RMSE: 0.05326
+
+Testar clean com loss MAE: gerou todos os phi negativos.
+
+Adicionar mais uma camada na clean: 
+	Testado com 9x24,24x12,12x24,24x12,12x150. MSE demorou mais a convergir que clean_cpu1 porém mesmo resultado (MSE: 0.00285, RMSE: 0.05335).
+	Testado com 9x12,12x24,24x48,48x24,24x150. MSE convergiu mais rapidamente que clean_cpu1 porém resultado bem próximo (MSE: 0.00291, RMSE: 0.05391)
+
+Testar clean com ReLU:
+	Atingiu MSE bem baixo (MSE: 0.00137, RMSE: 0.03696), porém os valores preditos para phi estão bem aleatórios, longe dos esperados (gerou 0.015 para esperado 0.030, gerou 0.0069 para esperado 0.029).
+	
+
+Quantidade inicial de camadas porém mais neurônios:
+
+
+
+Mais uma camada e mais neurônios:
+	Testado com 9x150,150x300,300x600,600x1200,1200x150. MSE convergiu de forma anormal, baixando e depois subindo um pouco e voltando a baixar. MSE sem melhoras, ligeira piora (MSE: 0.00302, RMSE: 0.05500).
+
+Treino clean com variação de batches:
+	Alterado batch de 8 para 32, resultado sem muita variação em relação a clean_cpu1, porém atingiu MSE antes (MSE: 0.00276, RMSE: 0.05255).
+	Alterado batch de 8 para 2, resultado sem muita variação em relação a clean_cpu1, somente formato da curva do MSE diferente,demorou um pouco mais a cair mas estabilizou mais rápido. MSE: 0.00271, RMSE: 0.05208.
+	
+Treino clean com variação de learning rate:
+	Alterado lr para 0.00001 (anterior era 0.0001), chegou nas 100 épocas ainda baixando MSE porém com resultado ainda bem ruim/alto (MSE: 0.00621, RMSE: 0.07883).
+	Alterado lr para 0.001 (anterior era 0.0001), variações ao longo do gráfico (desceu, subiu, desceu, não fez reta), não chegou a estabilizar muito com 100 épocas (valor ainda baixou nas 3 últimas épocas). Atingiu resultado  um pouco melhor que o clean_cpu1 (MSE: 0.00277 RMSE: 0.05259).
+	Utilizado valor anterior (0.001) porém treinando 200 épocas, reduziu um pouco mais o MSE (MSE: 0.00267, RMSE: 0.05171).
+	Utilizado valor anterior (0.001) porém treinando 300 épocas, não houve melhora do MSE (MSE: 0.00289, RMSE: 0.05372).
+
+Treinar apenas para phi:
+
+Treinar calculando deltas x1-x0 y1-y0:
+
+Testar com rede parecida com clean no simulador:
+
+Procurar parâmetro para 
+
+Autoajuste de hiperparâmetros e tamanho da rede:
