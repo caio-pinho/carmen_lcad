@@ -420,8 +420,8 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	
 	//std::cout << "tempo total: " << tcp.tt << std::endl;
 	optimizer_prints << "tempo total: " << tcp.tt << "\n";
-	for (t = delta_t; t < tcp.tt; t += delta_t)//delta_t = 0.02, t=0.02, t<tcp.tt
-	//for (t = delta_t; t < 0.1; t += delta_t)
+	//for (t = delta_t; t < tcp.tt; t += delta_t)//delta_t = 0.02, t=0.02, t<tcp.tt
+	for (t = delta_t; t < 0.3; t += delta_t)
 	//for (int k = 0; k < 50; k++)
 	{
 		optimizer_prints << "tempo atual: " << t << "\n";
@@ -434,13 +434,13 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 		//command.v = 1.0;
 		optimizer_prints << "command.v:" << command.v << "\n";
 		//command.v = output_vector[z-1];
-		//command.phi = output_vector[z];
+		command.phi = output_vector[z];
 		//command.phi = 0.0;
 		
 		//command.phi = -0.050;
 		//std::cout << "command.phi" << z << ":" << command.phi << std::endl;	
 
-		command.phi = gsl_spline_eval(phi_spline, t, acc);
+		//command.phi = gsl_spline_eval(phi_spline, t, acc);
 
 		//std::cout << "command.phi_neural" << z << ":" << output_vector[z] << std::endl;	
 		optimizer_prints << "timestamp avaliar phi: " << carmen_get_time() << "\n";
@@ -495,7 +495,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 		i++;
 	}
 	
-
+	
 	if ((tcp.tt - (t -  delta_t)) > 0.0)//tcp.tt = 5.071, t = 5.100, delta_t = 0.150; 5.071 - (5.100 - 0.150) = 0.121
 	{
 		//std::cout << "entrou no tcp.tt-(t-delta_t)>): tcp.tt: " << tcp.tt << "t: " << t << "delta_t: " << delta_t << std::endl;
