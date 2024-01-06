@@ -29,6 +29,8 @@ Treino clean com variação de learning rate:
 	Utilizado valor anterior (0.001) porém treinando 300 épocas, não houve melhora do MSE (MSE: 0.00289, RMSE: 0.05372).
 
 Treinar apenas para phi:
+	Mantida a configuração padrão da rede clean porém apenas com 50 saídas (apenas phi). MSE caiu rapidamente para 0.00020 (época 04) e manteve-se neste patamar até o final do treino (MSE: 0.00020, RMSE: 0.01413). Valores gerados ainda não exatamente o esperado no dado de teste (gerou 0.032 para esperado 0.030, gerou 0.033 para esperado 0.029, gerou 0.032 para esperado 0.029).
+	Tirando o StandardScaler das entradas gerou dados sem sentido, todos os phi negativos.
 
 Treinar calculando deltas x1-x0 y1-y0:
 
