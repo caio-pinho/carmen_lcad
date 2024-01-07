@@ -33,6 +33,7 @@ Treinar apenas para phi:
 	Tirando o StandardScaler das entradas gerou dados sem sentido, todos os phi negativos.
 
 Treinar calculando deltas x1-x0 y1-y0:
+	Testado com rede um pouco maior (7x50, 50x100, 100x50, 50x50), melhor resultado até agora (MSE: 0.00015, RMSE: 0.01207). Valores gerados ainda não exatamente o esperado no dado de teste (gerou 0.024 para esperado 0.030, gerou 0.027 para esperado 0.029, gerou 0.027 para esperado 0.029). Mean: [ 0.03014025  7.5990734   0.03687858  7.48108486 -0.00265366 24.72789046 12.83918209], Std dev:[2.01209729 1.9755529  2.01643878 1.86634132 0.05207826 9.31226339 8.47316214]
 
 Testar com rede parecida com clean no simulador:
 
