@@ -50,7 +50,8 @@ bool use_obstacles = true;
 
 extern int use_unity_simulator;
 
-auto module = torch::jit::load("/mnt/Dados/caiopinho/carmen_lcad/model_clean_lr_0.001_200_epocas.pt");
+//auto module = torch::jit::load("/mnt/Dados/caiopinho/carmen_lcad/model_clean_lr_0.001_200_epocas.pt");
+auto module = torch::jit::load("/mnt/Dados/caiopinho/carmen_lcad/model_clean_apenas_phi_diferencas_mais_complexo.pt");
 
 void
 plot_phi_profile(TrajectoryControlParameters tcp)
@@ -369,24 +370,31 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	std::vector<float> std_dev = {419.98896269, 203.30314877, 2.00996865, 1.96946407, 420.14477201, 203.81701318, 2.01436103, 1.86837855, 0.05217095};
 	//std::vector<float> mean = {7757220.09807177, -363788.6298811, 0.01382737, 7.60729115, 7757223.12119663, -363787.17344423, 0.02821917, 7.48223738, -0.00291552};
 	//std::vector<float> std_dev = {421.1738801, 202.33636103, 2.0122934, 1.95943106, 421.48077829, 202.77701364, 2.01787801, 1.86553719, 0.05171279};
-	/*MEAN E STD_DEV 0.001 200 epocas:*/
+	
+	/*MEAN E STD_DEV 0.001 200 epocas:
 	std::vector<float> mean = {7757220.40727782, -363790.16679552, 0.01492702, 7.60444466, 7757223.32321861, -363788.65378278, 0.02261824, 7.48120795, -0.00295132};
 	std::vector<float> std_dev = {419.08663509, 203.13781338, 2.01185786, 1.96965384, 419.51681513, 203.66713538, 2.01659004, 1.85767083, 0.05151835};
+	
+	/*MEAN E STD_DEV model_clean_apenas_phi_diferencas_mais_complexo:*/
+	std::vector<float> mean = {0.03014025, 7.5990734, 0.03687858, 7.48108486, -0.00265366, 24.72789046, 12.83918209};
+	std:vector<float> std_dev = {2.01209729, 1.9755529, 2.01643878, 1.86634132, 0.05207826, 9.31226339, 8.47316214};
 
 	std::vector<float> x;// = {7757750.975, -363847.325, -2.485, 2.5, 7757759.112, -363841.075, -2.485, 2.902, 0.0};
 	
-	x.push_back(GlobalState::goal_pose->x);
-	x.push_back(GlobalState::goal_pose->y);
+	//x.push_back(GlobalState::goal_pose->x);
+	//x.push_back(GlobalState::goal_pose->y);
 	x.push_back(GlobalState::goal_pose->theta);
 	x.push_back(GlobalState::robot_config.max_v);
-	x.push_back(GlobalState::localizer_pose->x);
-	x.push_back(GlobalState::localizer_pose->y);
+	//x.push_back(GlobalState::localizer_pose->x);
+	//x.push_back(GlobalState::localizer_pose->y);
 	x.push_back(GlobalState::localizer_pose->theta);
 	x.push_back(GlobalState::last_odometry.v);
 	if (GlobalState::last_odometry.v > 0.0)
 		x.push_back(GlobalState::last_odometry.phi);
 	else
 		x.push_back(0.0);
+	x.push_back(fabs(GlobalState::goal_pose->x-GlobalState::localizer_pose->x));
+	x.push_back(fabs(GlobalState::goal_pose->y-GlobalState::localizer_pose->y));
 	//x.push_back(GlobalState::last_odometry.phi);
 	
 	//std::cout << "vetor nao normalizado: " << x << std::endl;
@@ -399,7 +407,8 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	//std::cout << "vetor normalizado: " << x << std::endl;
 	optimizer_prints << "vetor normalizado: " << x << "\n";
 	
-	torch::Tensor tensor_inputs = torch::tensor({{x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8]}});
+	//torch::Tensor tensor_inputs = torch::tensor({{x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8]}});
+	torch::Tensor tensor_inputs = torch::tensor({{x[0], x[1], x[2], x[3], x[4], x[5], x[6]}});
 
 	// Create a vector to hold the inputs to the model
 	std::vector<torch::jit::IValue> inputs;
