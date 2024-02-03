@@ -427,7 +427,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	optimizer_prints << "vetor calculado: " << output_vector << "\n";
 
 	x.clear();	
-	int z = 1;
+	int z = 0;
 	//values = {GlobalState::goal_pose->x, GlobalState::goal_pose->y, GlobalState::goal_pose->theta, GlobalState::robot_config.max_v, GlobalState::localizer_pose->x, GlobalState::localizer_pose->y, GlobalState::localizer_pose->theta, GlobalState::last_odometry.v, GlobalState::last_odometry.phi};
 	
 	//std::cout << "tempo total: " << tcp.tt << std::endl;
@@ -462,7 +462,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 		//RECALCULAR O PHI AQUI (NÃO USAR OS ANTIGOS)
 		//command.phi = 0.0;
 
-		z = z + 3;
+		z = z + 1;
 
 			/*values[0] = GlobalState::goal_pose->x;
 			values[1] = GlobalState::goal_pose->y;
@@ -507,7 +507,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 		i++;
 	}
 	
-	
+	/*
 	if ((tcp.tt - (t -  delta_t)) > 0.0)//tcp.tt = 5.071, t = 5.100, delta_t = 0.150; 5.071 - (5.100 - 0.150) = 0.121
 	{
 		//std::cout << "entrou no tcp.tt-(t-delta_t)>): tcp.tt: " << tcp.tt << "t: " << t << "delta_t: " << delta_t << std::endl;
@@ -530,7 +530,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 
 		// Cada ponto na trajetoria marca uma posicao do robo e o delta_t para chegar aa proxima
 		path.push_back(convert_to_carmen_robot_and_trailer_path_point_t(robot_state, 0.0));
-	}
+	}*/
 	optimizer_prints.close();
 	gsl_interp_accel_free(acc);
 	//printf("cpvs: path size depois: %ld\n",path.size());
