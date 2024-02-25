@@ -43,9 +43,26 @@ show_animation = True
 
 
 class quintic_polynomial:
+    """
+    Represents a quintic polynomial trajectory.
+
+    Attributes:
+        xs (float): Initial position.
+        vxs (float): Initial velocity.
+        axs (float): Initial acceleration.
+        xe (float): Final position.
+        vxe (float): Final velocity.
+        axe (float): Final acceleration.
+        T (float): Time duration.
+
+    Methods:
+        calc_point(t): Calculates the position at a given time.
+        calc_first_derivative(t): Calculates the first derivative (velocity) at a given time.
+        calc_second_derivative(t): Calculates the second derivative (acceleration) at a given time.
+        calc_third_derivative(t): Calculates the third derivative (jerk) at a given time.
+    """
 
     def __init__(self, xs, vxs, axs, xe, vxe, axe, T):
-
         # calc coefficient of quintic polynomial
         self.xs = xs
         self.vxs = vxs
@@ -71,23 +88,59 @@ class quintic_polynomial:
         self.a5 = x[2]
 
     def calc_point(self, t):
+        """
+        Calculates the position at a given time.
+
+        Args:
+            t (float): Time.
+
+        Returns:
+            float: Position at time t.
+        """
         xt = self.a0 + self.a1 * t + self.a2 * t**2 + \
             self.a3 * t**3 + self.a4 * t**4 + self.a5 * t**5
 
         return xt
 
     def calc_first_derivative(self, t):
+        """
+        Calculates the first derivative (velocity) at a given time.
+
+        Args:
+            t (float): Time.
+
+        Returns:
+            float: Velocity at time t.
+        """
         xt = self.a1 + 2 * self.a2 * t + \
             3 * self.a3 * t**2 + 4 * self.a4 * t**3 + 5 * self.a5 * t**4
 
         return xt
 
     def calc_second_derivative(self, t):
+        """
+        Calculates the second derivative (acceleration) at a given time.
+
+        Args:
+            t (float): Time.
+
+        Returns:
+            float: Acceleration at time t.
+        """
         xt = 2 * self.a2 + 6 * self.a3 * t + 12 * self.a4 * t**2 + 20 * self.a5 * t**3
 
         return xt
 
     def calc_third_derivative(self, t):
+        """
+        Calculates the third derivative (jerk) at a given time.
+
+        Args:
+            t (float): Time.
+
+        Returns:
+            float: Jerk at time t.
+        """
         xt = 6 * self.a3 + 24 * self.a4 * t + 60 * self.a5 * t**2
 
         return xt
@@ -164,7 +217,20 @@ class Frenet_path:
 
 
 def calc_frenet_paths(c_speed, c_d, c_d_d, c_d_dd, s0):
+    """
+    Calculate Frenet paths based on the current state and parameters.
 
+    Args:
+        c_speed (float): Current speed of the vehicle.
+        c_d (float): Current lateral position of the vehicle.
+        c_d_d (float): Current lateral velocity of the vehicle.
+        c_d_dd (float): Current lateral acceleration of the vehicle.
+        s0 (float): Initial longitudinal position of the vehicle.
+
+    Returns:
+        list: List of Frenet paths.
+
+    """
     frenet_paths = []
 
     # generate path to each offset goal
@@ -208,6 +274,16 @@ def calc_frenet_paths(c_speed, c_d, c_d_d, c_d_dd, s0):
 
 
 def calc_global_paths(fplist, csp):
+    """
+    Calculate the global paths for a list of FrenetPaths.
+
+    Args:
+        fplist (list): List of FrenetPaths.
+        csp: The CubicSplinePlanner object.
+
+    Returns:
+        list: List of FrenetPaths with global positions, yaw, ds, and curvature calculated.
+    """
 
     for fp in fplist:
 
@@ -289,6 +365,23 @@ def frenet_optimal_planning(csp, s0, c_speed, c_d, c_d_d, c_d_dd, ob, robot_radi
     return bestpath, fplist
 
 def frenet_planning(x, y, s0, c_speed, c_d, c_d_d, c_d_dd, ob, robot_radius):
+    """
+    Generate Frenet optimal trajectories based on the given parameters.
+
+    Args:
+        x (list): List of x-coordinates of waypoints.
+        y (list): List of y-coordinates of waypoints.
+        s0 (float): Initial longitudinal position.
+        c_speed (float): Current speed.
+        c_d (float): Current lateral position.
+        c_d_d (float): Current lateral velocity.
+        c_d_dd (float): Current lateral acceleration.
+        ob (numpy.ndarray): Array of obstacles.
+        robot_radius (float): Radius of the robot.
+
+    Returns:
+        list: List of Frenet optimal trajectories.
+    """
     csp = cubic_spline_planner.Spline2D(x, y)
  
     fplist = calc_frenet_paths(c_speed, c_d, c_d_d, c_d_dd, s0)
@@ -299,6 +392,15 @@ def frenet_planning(x, y, s0, c_speed, c_d, c_d_d, c_d_dd, ob, robot_radius):
     return fplist
 
 def frenet_find_optimal(fplist):
+    """
+    Finds the optimal path from a list of Frenet paths.
+
+    Args:
+        fplist (list): A list of Frenet paths.
+
+    Returns:
+        FrenetPath: The optimal Frenet path with the minimum cost.
+    """
     mincost = float("inf")
     bestpath = None
     for fp in fplist:
@@ -583,12 +685,12 @@ def main():
 
     area = 30.0  # animation area length [m]
 
-    for i in range(500):
-
+    for i in range(100):
+        print("i:",i)
         fplist = frenet_planning(
-            wx, wy, s0, c_speed, c_d, c_d_d, c_d_dd, ob)
+            wx, wy, s0, c_speed, c_d, c_d_d, c_d_dd, ob, ROBOT_RADIUS)
         path = frenet_find_optimal(fplist)
-
+        print("s0:",s0)
         s0 = path.s[1]
         c_d = path.d[1]
         c_d_d = path.d_d[1]
@@ -601,12 +703,13 @@ def main():
 
         if show_animation:
             plt.cla()
-            plt.plot(tx, ty)
-            plt.plot(ob[:, 0], ob[:, 1], "xk")
+            plt.plot(tx, ty) #target course, linha azul
+            plt.plot(ob[:, 0], ob[:, 1], "xk") #obstáculo, x no mapa
             for fp in fplist:
-                plt.plot(fp.x[1:], fp.y[1:], "-g")
-            plt.plot(path.x[1:], path.y[1:], "-or")
-            plt.plot(path.x[1], path.y[1], "vc")
+                plt.plot(fp.x[1:], fp.y[1:], "-g") #span verde
+                #print("fp.x[1:]", fp.x[1:])
+            plt.plot(path.x[1:], path.y[1:], "-or") #caminho escolhido, bolinhas vermelhas
+            plt.plot(path.x[1], path.y[1], "vc") #posição do carro sobre o caminho escolhido
             plt.xlim(path.x[1] - area, path.x[1] + area)
             plt.ylim(path.y[1] - area, path.y[1] + area)
             plt.title("v[km/h]:" + str(c_speed * 3.6)[0:4])

@@ -452,7 +452,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 		//command.phi = -0.050;
 		//std::cout << "command.phi" << z << ":" << command.phi << std::endl;	
 
-		//command.phi = gsl_spline_eval(phi_spline, t, acc);
+		command.phi = gsl_spline_eval(phi_spline, t, acc);
 
 		//std::cout << "command.phi_neural" << z << ":" << output_vector[z] << std::endl;	
 		optimizer_prints << "timestamp avaliar phi: " << carmen_get_time() << "\n";
