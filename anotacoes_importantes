@@ -1,6 +1,6 @@
 pytorch version = 1.7.1+cu110
 
-dataset_output_consolidado = 30098 (finaliza com dataset_trechos_sentido_antihorario_compilados.txt, 20834 linhas)
+dataset_output_consolidado = 30098 (finaliza com dataset_trechos_sentido_antihorario_compilados.txt, 20834 linhas), começa pelo volta_sentido_horario.
 falta 9264 linhas;
 dataset_output = 9264 linhas (só 1 comando). diferença para o próximo: retirou a última linha e a primeira linha
 dataset_output_volta_completa_sentido_horario = 9266 linhas (já ta ok, linhas que sobraram podem ser utilizadas)
@@ -37,4 +37,30 @@ input:
 7757764.077	-363535.602	0.647	6.392	7757738.784	 -363555.009	0.664	8.341	-0.002
 output:
 8.341	-0.002	0.020	8.333	-0.002	0.020	8.324	-0.002	0.020	8.315	-0.002	0.020	8.306	-0.002	0.020	8.298	-0.002	0.020	8.289	-0.002	0.020	8.280	-0.002	0.020	8.272	-0.002	0.020	8.263	-0.002	0.020	8.254	-0.002	0.020	8.245	-0.002	0.020	8.237	-0.002	0.020	8.228	-0.002	0.020	8.219	-0.002	0.020	8.210	-0.002	0.020	8.202	-0.002	0.020	8.193	-0.002	0.020	8.184	-0.002	0.020	8.175	-0.002	0.020	8.167	-0.002	0.020	8.158	-0.002	0.020	8.149	-0.002	0.020	8.140	-0.002	0.020	8.132	-0.002	0.020	8.123	-0.002	0.020	8.114	-0.002	0.020	8.106	-0.002	0.020	8.097	-0.002	0.020	8.088	-0.002	0.020	8.079	-0.002	0.020	8.071	-0.002	0.020	8.062	-0.002	0.020	8.053	-0.002	0.020	8.044	-0.002	0.020	8.036	-0.002	0.020	8.027	-0.002	0.020	8.018	-0.002	0.020	8.009	-0.002	0.020	8.001	-0.002	0.020	7.992	-0.002	0.020	7.983	-0.002	0.020	7.975	-0.002	0.020	7.966	-0.002	0.020	7.957	-0.002	0.020	7.948	-0.002	0.020	7.940	-0.002	0.020	7.931	-0.002	0.020	7.922	-0.002	0.020	7.913	-0.002	0.020	7.905	-0.002	0.020	7.896	-0.002	0.020	7.887	-0.002	0.020	7.878	-0.002	0.020	7.870	-0.002	0.020	7.861	-0.002	0.020	7.852	-0.002	0.020	7.843	-0.002	0.020	7.835	-0.002	0.020	7.826	-0.002	0.020	7.817	-0.002	0.020	7.809	-0.002	0.020	7.800	-0.002	0.020	7.791	-0.002	0.020	7.782	-0.002	0.020	7.774	-0.002	0.020	7.765	-0.002	0.020	7.756	-0.002	0.020	7.747	-0.002	0.020	7.739	-0.002	0.020	7.730	-0.002	0.020	7.721	-0.002	0.020	7.712	-0.002	0.020	7.686	-0.002	0.060	7.660	-0.002	0.060	7.634	-0.002	0.060	7.608	-0.001	0.060	7.581	-0.001	0.060	7.555	-0.001	0.060	7.529	-0.001	0.060	7.503	-0.001	0.060	7.477	-0.001	0.060	7.450	-0.001	0.060	7.424	-0.001	0.060	7.398	-0.001	0.060	7.372	-0.001	0.060	7.346	-0.001	0.060	7.319	-0.001	0.060	7.293	-0.001	0.060	7.267	-0.001	0.060	7.241	-0.001	0.060	7.215	-0.001	0.060	7.188	-0.001	0.060	7.162	-0.000	0.060	7.136	-0.000	0.060	7.110	-0.000	0.060	7.083	-0.000	0.060	7.057	-0.000	0.060	7.031	-0.000	0.060	7.005	-0.000	0.060	6.979	-0.000	0.060	6.952	-0.000	0.060	6.926	-0.000	0.060	6.900	-0.000	0.060	6.874	-0.000	0.060	6.848	-0.000	0.060	6.821	-0.000	0.060	6.795	-0.000	0.060	6.769	-0.000	0.060	6.743	-0.000	0.060	6.717	-0.000	0.060	6.690	-0.001	0.060	6.664	-0.001	0.060	6.638	-0.001	0.060	6.612	-0.001	0.060	6.586	-0.001	0.060	6.559	-0.001	0.060	6.533	-0.001	0.060	6.507	-0.001	0.060	6.481	-0.001	0.060	6.455	-0.001	0.060	6.428	-0.001	0.060	6.402	-0.001	0.060
+
+	//x.push_back(GlobalState::goal_pose->x);
+	//x.push_back(GlobalState::goal_pose->y);
+	x.push_back(GlobalState::goal_pose->theta);
+	x.push_back(GlobalState::robot_config.max_v);
+	//x.push_back(GlobalState::localizer_pose->x);
+	//x.push_back(GlobalState::localizer_pose->y);
+	x.push_back(GlobalState::localizer_pose->theta);
+	x.push_back(GlobalState::last_odometry.v);
+	if (GlobalState::last_odometry.v > 0.0)
+		x.push_back(GlobalState::last_odometry.phi);
+	else
+		x.push_back(0.0);
+	x.push_back(fabs(GlobalState::goal_pose->x-GlobalState::localizer_pose->x));
+	x.push_back(fabs(GlobalState::goal_pose->y-GlobalState::localizer_pose->y));
+
+A primeira sessão de gerar comandos não roda pois o v = v0 = 0 sempre (se não tiver incrementando o t, o v0 não vai aumentar).
+Na segunda sessão como utiliza o tt para calcular o v = v0, há incremento do valor.
+
+A linha do path até o goal não precisa da segunda sessão.
+Se colocar valor de phi exagerado, não gera linha, mas se forçar o valor do phi = 0 ele gera a linha mesmo sem o gsl_spline_eval(precisa estar com o for do t, com o for do k não gera a linha).
+Provavelmente avalia se o phi é válido para aquele goal. Com for t < 0.3 não gerou a linha, provavelmente não tem a quantidade de comandos para ir até o goal e formar a linha.
+Com t < 5 a quantidade de comandos foi suficiente e gerou a linha!
+
+Testar se vai gerar a linha com um unico comando com o tempo total.
+Testar se com o for do k porém com um k que aproxime do tt, vai gerar a linha.
 
