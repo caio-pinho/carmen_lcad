@@ -53,6 +53,72 @@ extern int use_unity_simulator;
 //auto module = torch::jit::load("/mnt/Dados/caiopinho/carmen_lcad/model_clean_lr_0.001_200_epocas.pt");
 auto module = torch::jit::load("/mnt/Dados/caiopinho/carmen_lcad/model_clean_apenas_phi_diferencas_mais_complexo.pt");
 
+template<typename T>
+std::vector<double> linspace(T start_in, T end_in, int num_in)
+{
+
+  std::vector<double> linspaced;
+
+  double start = static_cast<double>(start_in);
+  double end = static_cast<double>(end_in);
+  double num = static_cast<double>(num_in);
+
+  if (num == 0) { return linspaced; }
+  if (num == 1) 
+    {
+      linspaced.push_back(start);
+      return linspaced;
+    }
+
+  double delta = (end - start) / (num - 1);
+
+  for(int i=0; i < num-1; ++i)
+    {
+      linspaced.push_back(start + delta * i);
+    }
+  linspaced.push_back(end); // I want to ensure that start and end
+                            // are exactly the same as the input
+  return linspaced;
+}
+
+void print_vector(std::vector<double> vec)
+{
+  std::cout << "size: " << vec.size() << std::endl;
+  for (double d : vec)
+    std::cout << d << " ";
+  std::cout << std::endl;
+}
+
+std::vector<double> get_predicted_vehicle_location(double x, double y, double steering_angle, double yaw, double v) {
+	double wheel_heading = yaw + steering_angle;
+	double wheel_traveled_dis = v * 0.02; //(timestamp - this->vars.t_previous);
+	return {x + wheel_traveled_dis * cos(wheel_heading), y + wheel_traveled_dis * sin(wheel_heading)};
+}
+
+#include <cmath>
+
+double get_distance(double x1, double y1, double x2, double y2) {
+    return std::sqrt(std::pow(x1 - x2, 2) + std::pow(y1 - y2, 2));
+}
+
+/*int main()
+{
+  std::vector<double> vec_1 = linspace(1, 10, 3);
+  print_vector(vec_1);
+
+  std::vector<double> vec_2 = linspace(6.0, 23.4, 5);
+  print_vector(vec_2);
+
+  std::vector<double> vec_3 = linspace(0.0, 2.0, 1);
+  print_vector(vec_3);
+
+  std::vector<double> vec_4 = linspace(0.0, 2.0, 0);
+  print_vector(vec_4);
+
+
+  return 0;
+}*/
+
 void
 plot_phi_profile(TrajectoryControlParameters tcp)
 {
@@ -433,30 +499,66 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	//std::cout << "tempo total: " << tcp.tt << std::endl;
 	optimizer_prints << "tempo total: " << tcp.tt << "\n";
 	double novo_t = 0.0;
+
+	std::vector<double> steering_list = linspace(-0.05235988, 0.05235988, 21);
+  	print_vector(steering_list);
+	//optimizer_prints << "steering list inicial: " << steering_list << "\n";
+	double steering_previous = 0.0;
+
+
+
+	//optimizer_prints << "steering list alterado: " << steering_list << "\n";
 	for (t = delta_t; t < tcp.tt; t += delta_t)//delta_t = 0.02, t=0.02, t<tcp.tt
 	//for (t = delta_t; t < 5.0; t += delta_t) // FUNCIONOU
-	//for (int k = 0; k < 5; k++)
+	//for (int k = 0; k < 40; k++)
+
 	{
+		t = tcp.tt;
 		novo_t += delta_t;
 		optimizer_prints << "novo_t: " << novo_t << "\n";
 		optimizer_prints << "tempo atual: " << t << "\n";
 		//std::cout << "tempo atual: " << t << std::endl;	
-		//command.v = v0 + tcp.a * t;
-		command.v = v0 + tcp.a * novo_t;
+		command.v = v0 + tcp.a * t;
+		//command.v = v0 + tcp.a * novo_t;
 		if (command.v > GlobalState::param_max_vel)
 			command.v = GlobalState::param_max_vel;
 		else if (command.v < GlobalState::param_max_vel_reverse)
 			command.v = GlobalState::param_max_vel_reverse;
-		//command.v = 1.0;
+		command.v = 1.0;
 		optimizer_prints << "primeiro command.v:" << command.v << "\n";
 		//command.v = output_vector[z-1];
 		command.phi = output_vector[z];
-		
+		//command.phi = 0.0;
 		
 		//command.phi = -0.050;
 		//std::cout << "command.phi" << z << ":" << command.phi << std::endl;	
 
-		//command.phi = gsl_spline_eval(phi_spline, t, acc);
+		command.phi = gsl_spline_eval(phi_spline, t, acc);
+
+
+
+		for (auto& steering : steering_list) {
+			steering += steering_previous;
+		}
+		print_vector(steering_list);
+
+		double min_dist = std::numeric_limits<double>::infinity();
+		for (int i = 0; i < steering_list.size(); i++) {
+    		std::vector<double> predicted_vehicle_location = get_predicted_vehicle_location(GlobalState::localizer_pose->x, GlobalState::localizer_pose->y, steering_list[i], GlobalState::localizer_pose->theta, 1.0); // Get predicted vehicle location based on its current state and control input (i-th steering angle from the list)
+    		print_vector(predicted_vehicle_location);
+			double dist_to_lookahead_point = get_distance(predicted_vehicle_location[0], predicted_vehicle_location[1], GlobalState::goal_pose->x, GlobalState::goal_pose->y); // Compute the distance between predicted vehicle location and lookahead point
+			printf("steering_list[i]: %lf\n", steering_list[i]);
+    		printf("dist_to_lookahead_point: %lf\n", dist_to_lookahead_point);
+			if (dist_to_lookahead_point < min_dist) { // Optimization problem (Minimize distance between predicted vehicle location and lookahead point to ensure effective path-tracking)
+				printf("novo phi: %lf\n", steering_list[i]);
+        		command.phi = steering_list[i]; // Select the steering angle that minimizes distance between predicted vehicle location and lookahead point
+        		min_dist = dist_to_lookahead_point; // Update the minimum distance value
+    		}
+		}
+		steering_previous = command.phi; // Update previous steering angle value
+
+
+
 		//command.phi = -0.01;
 		//std::cout << "command.phi_neural" << z << ":" << output_vector[z] << std::endl;	
 		optimizer_prints << "timestamp avaliar phi: " << carmen_get_time() << "\n";
