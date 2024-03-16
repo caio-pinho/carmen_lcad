@@ -81,9 +81,11 @@ smooth_short_path(vector<carmen_robot_and_trailer_path_point_t> &original_path)
 	double distance_travelled = 0.0;
 	if (path.size() > 1)
 	{
+		printf("path.size() > 1\n");
 		distance_travelled = DIST2D(path[0], path[path.size() - 1]);
 		if (distance_travelled < 0.6)
 		{
+			printf("distance_travelled < 0.6\n");
 			for (unsigned int j = 0; j < path.size(); j++)
 				original_path[j].phi = stable_phi;
 		}
@@ -206,7 +208,7 @@ publish_model_predictive_planner_motion_commands(vector<carmen_robot_and_trailer
 void
 publish_robot_ackerman_motion_commands_eliminating_path_follower(vector<carmen_robot_and_trailer_path_point_t> &original_path, double timestamp)
 {
-	vector<carmen_robot_and_trailer_path_point_t> path = smooth_short_path(original_path);	// A plicacao dos atrazos do robo agora são na saida do obstacle_avoider
+	vector<carmen_robot_and_trailer_path_point_t> path = original_path;//@CAIO EDITEI AQUI PRA RODAR PHIs	// A plicacao dos atrazos do robo agora são na saida do obstacle_avoider
 //	vector<carmen_robot_and_trailer_path_point_t> path = original_path;//apply_robot_delays(original_path);	// A plicacao dos atrazos do robo agora são na saida do obstacle_avoider
 	/*printf("\n vai chamar o print_path_ dentro do publish_robot_ackerman_motion_commands_eliminating_path_follower\n");@CPINHO: ENTRA AQUI DEPOIS 
 	QUE CRIA O PATH*/

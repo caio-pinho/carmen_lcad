@@ -25,6 +25,7 @@
 #include "libtorch/include/torch/csrc/api/include/torch/torch.h"
 #include <vector>
 #include "libtorch/include/torch/script.h"
+#include <cmath>
 
 //#define PUBLISH_PLAN_TREE
 #ifdef PUBLISH_PLAN_TREE
@@ -45,6 +46,8 @@ copy_path_to_traj(carmen_robot_and_trailer_traj_point_t *traj, vector<carmen_rob
 #define F_EPSABS	G_EPSABS
 
 bool use_obstacles = true;
+
+double steering_previous = 0.0;
 
 //extern carmen_mapper_virtual_laser_message virtual_laser_message;
 
@@ -89,13 +92,11 @@ void print_vector(std::vector<double> vec)
   std::cout << std::endl;
 }
 
-std::vector<double> get_predicted_vehicle_location(double x, double y, double steering_angle, double yaw, double v) {
+std::vector<double> get_predicted_vehicle_location(double x, double y, double steering_angle, double yaw, double v, double t) {
 	double wheel_heading = yaw + steering_angle;
-	double wheel_traveled_dis = v * 0.02; //(timestamp - this->vars.t_previous);
+	double wheel_traveled_dis = v * t; //(timestamp - this->vars.t_previous);
 	return {x + wheel_traveled_dis * cos(wheel_heading), y + wheel_traveled_dis * sin(wheel_heading)};
 }
-
-#include <cmath>
 
 double get_distance(double x1, double y1, double x2, double y2) {
     return std::sqrt(std::pow(x1 - x2, 2) + std::pow(y1 - y2, 2));
@@ -503,9 +504,8 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	std::vector<double> steering_list = linspace(-0.05235988, 0.05235988, 21);
   	print_vector(steering_list);
 	//optimizer_prints << "steering list inicial: " << steering_list << "\n";
-	double steering_previous = 0.0;
-
-
+	
+	
 
 	//optimizer_prints << "steering list alterado: " << steering_list << "\n";
 	for (t = delta_t; t < tcp.tt; t += delta_t)//delta_t = 0.02, t=0.02, t<tcp.tt
@@ -524,7 +524,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 			command.v = GlobalState::param_max_vel;
 		else if (command.v < GlobalState::param_max_vel_reverse)
 			command.v = GlobalState::param_max_vel_reverse;
-		command.v = 1.0;
+		//command.v = 1.0;
 		optimizer_prints << "primeiro command.v:" << command.v << "\n";
 		//command.v = output_vector[z-1];
 		command.phi = output_vector[z];
@@ -544,7 +544,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 
 		double min_dist = std::numeric_limits<double>::infinity();
 		for (int i = 0; i < steering_list.size(); i++) {
-    		std::vector<double> predicted_vehicle_location = get_predicted_vehicle_location(GlobalState::localizer_pose->x, GlobalState::localizer_pose->y, steering_list[i], GlobalState::localizer_pose->theta, 1.0); // Get predicted vehicle location based on its current state and control input (i-th steering angle from the list)
+    		std::vector<double> predicted_vehicle_location = get_predicted_vehicle_location(GlobalState::localizer_pose->x, GlobalState::localizer_pose->y, steering_list[i], GlobalState::localizer_pose->theta, command.v, t); // Get predicted vehicle location based on its current state and control input (i-th steering angle from the list)
     		print_vector(predicted_vehicle_location);
 			double dist_to_lookahead_point = get_distance(predicted_vehicle_location[0], predicted_vehicle_location[1], GlobalState::goal_pose->x, GlobalState::goal_pose->y); // Compute the distance between predicted vehicle location and lookahead point
 			printf("steering_list[i]: %lf\n", steering_list[i]);
@@ -555,6 +555,8 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
         		min_dist = dist_to_lookahead_point; // Update the minimum distance value
     		}
 		}
+		printf("command.phi after loop: %lf\n", command.phi);
+		printf("timestamp command.phi: %lf\n", carmen_get_time());
 		steering_previous = command.phi; // Update previous steering angle value
 
 
@@ -652,6 +654,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	//COMENTADO PARA DATASET optimizer_prints << "cpvs: distance_traveled: " << distance_traveled << "\n";
 	
 	//COMENTADO PARA DATASET optimizer_prints.close();
+	printf("cpvs: distance_traveled: %lf\n", distance_traveled);
 	return (distance_traveled);
 }
 
