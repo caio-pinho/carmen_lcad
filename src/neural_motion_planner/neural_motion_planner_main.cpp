@@ -21,8 +21,8 @@
 
 #include "util.h"
 #include "publisher_util.h"
-#include "model_predictive_planner.h"
-#include "model_predictive_planner_interface.h"
+#include "neural_motion_planner.h"
+#include "neural_motion_planner_interface.h"
 
 #include <carmen/collision_detection.h>
 
@@ -108,7 +108,7 @@ smooth_short_path(vector<carmen_robot_and_trailer_path_point_t> &original_path)
 
 
 void
-publish_model_predictive_planner_motion_commands(vector<carmen_robot_and_trailer_path_point_t> path, double timestamp)
+publish_neural_motion_planner_motion_commands(vector<carmen_robot_and_trailer_path_point_t> path, double timestamp)
 {
 	ofstream myfile;
 	ofstream file_generate_dataset;
@@ -130,7 +130,7 @@ publish_model_predictive_planner_motion_commands(vector<carmen_robot_and_trailer
 	}
 	//myfile << "GlobalState::localizer_pose_timestamp:" << GlobalState::localizer_pose_timestamp << "\n";//SO RETORNOU 0
 
-	/*printf("entrou no publish_model_predictive_planner_motion_commands\n"); @CPINHO: ENTRA AQUI DEPOIS QUE 
+	/*printf("entrou no publish_neural_motion_planner_motion_commands\n"); @CPINHO: ENTRA AQUI DEPOIS QUE 
 	ENTRA NO publish_robot_ackerman_motion_commands_eliminating_path_follower*/
 	if (!GlobalState::following_path) {
 		//printf("nao estah following_path\n");//CPINHO: PASSANDO POR AQUI ANTES DE INICIAR O MOVIMENTO (ANTES DE GERAR CMDS)
@@ -214,14 +214,14 @@ publish_robot_ackerman_motion_commands_eliminating_path_follower(vector<carmen_r
 	QUE CRIA O PATH*/
 	//print_path_(path);//CPINHO: DESCOMENTEI AQUI, DEU RUIM
 	//fflush(stdout); //CPINHO: INSERI A LINHA AQUI
-	publish_model_predictive_planner_motion_commands(path, timestamp); //COMENTAR AQUI PARA NAO RODAR. ESSE QUE FAZ GERAR OS COMANDOS NORMAIS
+	publish_neural_motion_planner_motion_commands(path, timestamp); //COMENTAR AQUI PARA NAO RODAR. ESSE QUE FAZ GERAR OS COMANDOS NORMAIS
 }
 
 
 void
-publish_model_predictive_planner_rrt_path_message(list<RRT_Path_Edge> path, double timestamp)
+publish_neural_motion_planner_rrt_path_message(list<RRT_Path_Edge> path, double timestamp)
 {
-	/*printf("entrou no publish_model_predictive_planner_rrt_path_message\n");@CPINHO: ENTROU (256x) 
+	/*printf("entrou no publish_neural_motion_planner_rrt_path_message\n");@CPINHO: ENTROU (256x) 
 	DEPOIS DO N ESTA FOLLOWING PATH E DEPOIS EM STANDARD OPERATION*/
 	int i = 0;
 	rrt_path_message msg;
@@ -383,7 +383,7 @@ new_commands()//double goal_x, double goal_y, double goal_theta, double target_v
 			fprintf( stderr, "command t: %f\n",command[2]);
 			printf("timestamp multiplo: %s \n",tmstmp.c_str());
 			publish_path_follower_motion_commands(commands, 2, carmen_get_time());
-			//publish_model_predictive_planner_single_motion_command_new(command_v, command_phi, command_v, carmen_get_time());
+			//publish_neural_motion_planner_single_motion_command_new(command_v, command_phi, command_v, carmen_get_time());
 			numcmds += 1;
 		}
 	}
@@ -408,7 +408,7 @@ publish_path_follower_single_motion_command(double v, double phi, double timesta
 
 
 void
-publish_model_predictive_planner_single_motion_command(double v, double phi, double timestamp)
+publish_neural_motion_planner_single_motion_command(double v, double phi, double timestamp)
 {
 	vector<carmen_robot_and_trailer_path_point_t> path;
 
@@ -422,7 +422,7 @@ publish_model_predictive_planner_single_motion_command(double v, double phi, dou
 	traj.beta = GlobalState::localizer_pose->beta;
 	path.push_back(traj);
 	path.push_back(traj);
-	publish_model_predictive_planner_motion_commands(path, timestamp);
+	publish_neural_motion_planner_motion_commands(path, timestamp);
 
 //	publish_path_follower_single_motion_command(0.0, GlobalState::last_odometry.phi, timestamp);
 	publish_path_follower_single_motion_command(0.0, phi, timestamp);
@@ -585,7 +585,7 @@ compute_plan(Tree *tree)
 }
 
 void
-publish_model_predictive_planner_single_motion_command_new(double v, double phi, double timestamp)
+publish_neural_motion_planner_single_motion_command_new(double v, double phi, double timestamp)
 {
 	vector<carmen_robot_and_trailer_path_point_t> path;
 
@@ -630,7 +630,7 @@ publish_model_predictive_planner_single_motion_command_new(double v, double phi,
 	//if (strcmp(dectmstmp.c_str(),".05") == 0) {
 
 		//printf("deu certo");
-	publish_model_predictive_planner_motion_commands(path, timestamp);
+	publish_neural_motion_planner_motion_commands(path, timestamp);
 
 //	publish_path_follower_single_motion_command(0.0, GlobalState::last_odometry.phi, timestamp);
 	publish_path_follower_single_motion_command(3.0, phi, timestamp);//era 0.0 mudei para 3.0
@@ -648,7 +648,7 @@ go_new()
 		string tmstmp = to_string(timestamp);
 		string dectmstmp = tmstmp.substr(10,5);
 		if (strcmp(dectmstmp.c_str(),".0000") == 0 || strcmp(dectmstmp.c_str(),".0500") == 0 || strcmp(dectmstmp.c_str(),".1000") == 0 || strcmp(dectmstmp.c_str(),".1500") == 0 || strcmp(dectmstmp.c_str(),".2000") == 0 || strcmp(dectmstmp.c_str(),".2500") == 0 || strcmp(dectmstmp.c_str(),".3000") == 0 || strcmp(dectmstmp.c_str(),".3500") == 0 || strcmp(dectmstmp.c_str(),".4000") == 0 || strcmp(dectmstmp.c_str(),".4500") == 0 || strcmp(dectmstmp.c_str(),".5000") == 0 || strcmp(dectmstmp.c_str(),".5500") == 0 || strcmp(dectmstmp.c_str(),".6000") == 0 || strcmp(dectmstmp.c_str(),".6500") == 0 || strcmp(dectmstmp.c_str(),".7000") == 0 || strcmp(dectmstmp.c_str(),".7500") == 0 || strcmp(dectmstmp.c_str(),".8000") == 0 || strcmp(dectmstmp.c_str(),".8500") == 0 || strcmp(dectmstmp.c_str(),".9000") == 0 || strcmp(dectmstmp.c_str(),".9500") == 0)  {
-			publish_model_predictive_planner_single_motion_command_new(0.0, 0.0, carmen_get_time());
+			publish_neural_motion_planner_single_motion_command_new(0.0, 0.0, carmen_get_time());
 			printf("timestamp multiplo: %s \n",tmstmp.c_str());
 			numcmds += 1;
 		}
@@ -658,7 +658,7 @@ go_new()
 
 
 void
-publish_model_predictive_planner_single_motion_command_new_original(double v, double phi, double timestamp)
+publish_neural_motion_planner_single_motion_command_new_original(double v, double phi, double timestamp)
 {
 	vector<carmen_robot_and_trailer_path_point_t> path;
 
@@ -705,7 +705,7 @@ publish_model_predictive_planner_single_motion_command_new_original(double v, do
 	//if (strcmp(dectmstmp.c_str(),".05") == 0) {
 
 		//printf("deu certo");
-	//publish_model_predictive_planner_motion_commands(path, timestamp);//ESSE OU O ULTIMO QUE FAZ O MOVIMENTO? FEZ O MOVIMENTO SEM ESSE
+	//publish_neural_motion_planner_motion_commands(path, timestamp);//ESSE OU O ULTIMO QUE FAZ O MOVIMENTO? FEZ O MOVIMENTO SEM ESSE
 
 //	publish_path_follower_single_motion_command(0.0, GlobalState::last_odometry.phi, timestamp);
 	publish_path_follower_single_motion_command(3.0, phi, timestamp);//era 0.0 mudei para 3.0 ESSE Q FAZ O MOVIMENTO!
@@ -729,7 +729,7 @@ go_new_original()
 		string dectmstmp = tmstmp.substr(10,5);
 		if (strcmp(dectmstmp.c_str(),".0000") == 0 || strcmp(dectmstmp.c_str(),".0500") == 0 || strcmp(dectmstmp.c_str(),".1000") == 0 || strcmp(dectmstmp.c_str(),".1500") == 0 || strcmp(dectmstmp.c_str(),".2000") == 0 || strcmp(dectmstmp.c_str(),".2500") == 0 || strcmp(dectmstmp.c_str(),".3000") == 0 || strcmp(dectmstmp.c_str(),".3500") == 0 || strcmp(dectmstmp.c_str(),".4000") == 0 || strcmp(dectmstmp.c_str(),".4500") == 0 || strcmp(dectmstmp.c_str(),".5000") == 0 || strcmp(dectmstmp.c_str(),".5500") == 0 || strcmp(dectmstmp.c_str(),".6000") == 0 || strcmp(dectmstmp.c_str(),".6500") == 0 || strcmp(dectmstmp.c_str(),".7000") == 0 || strcmp(dectmstmp.c_str(),".7500") == 0 || strcmp(dectmstmp.c_str(),".8000") == 0 || strcmp(dectmstmp.c_str(),".8500") == 0 || strcmp(dectmstmp.c_str(),".9000") == 0 || strcmp(dectmstmp.c_str(),".9500") == 0)  {
 			printf("numero do comando: %d",numcmds);
-			publish_model_predictive_planner_single_motion_command_new_original(0.0, 0.0, carmen_get_time());
+			publish_neural_motion_planner_single_motion_command_new_original(0.0, 0.0, carmen_get_time());
 			printf("timestamp multiplo: %s \n",tmstmp.c_str());
 			numcmds += 1;
 			//continua = false;
@@ -737,18 +737,18 @@ go_new_original()
 	}
 
 	//for (int z = 0; z < 2000; z++) {
-	//publish_model_predictive_planner_single_motion_command(3.0, 0.0, carmen_get_time());
+	//publish_neural_motion_planner_single_motion_command(3.0, 0.0, carmen_get_time());
 	//}
-	/*publish_model_predictive_planner_single_motion_command(0.031, 0.0, carmen_get_time());
-	publish_model_predictive_planner_single_motion_command(0.047, 0.0, carmen_get_time());
-	publish_model_predictive_planner_single_motion_command(0.063, 0.0, carmen_get_time());
-	publish_model_predictive_planner_single_motion_command(0.079, 0.0, carmen_get_time());
-	publish_model_predictive_planner_single_motion_command(0.095, 0.0, carmen_get_time());
-	publish_model_predictive_planner_single_motion_command(0.111, 0.0, carmen_get_time());
-	publish_model_predictive_planner_single_motion_command(0.127, 0.0, carmen_get_time());
-	publish_model_predictive_planner_single_motion_command(0.143, 0.0, carmen_get_time());
-	publish_model_predictive_planner_single_motion_command(0.159, 0.0, carmen_get_time());
-	publish_model_predictive_planner_single_motion_command(0.175, 0.0, carmen_get_time());*/
+	/*publish_neural_motion_planner_single_motion_command(0.031, 0.0, carmen_get_time());
+	publish_neural_motion_planner_single_motion_command(0.047, 0.0, carmen_get_time());
+	publish_neural_motion_planner_single_motion_command(0.063, 0.0, carmen_get_time());
+	publish_neural_motion_planner_single_motion_command(0.079, 0.0, carmen_get_time());
+	publish_neural_motion_planner_single_motion_command(0.095, 0.0, carmen_get_time());
+	publish_neural_motion_planner_single_motion_command(0.111, 0.0, carmen_get_time());
+	publish_neural_motion_planner_single_motion_command(0.127, 0.0, carmen_get_time());
+	publish_neural_motion_planner_single_motion_command(0.143, 0.0, carmen_get_time());
+	publish_neural_motion_planner_single_motion_command(0.159, 0.0, carmen_get_time());
+	publish_neural_motion_planner_single_motion_command(0.175, 0.0, carmen_get_time());*/
 	//GlobalState::following_path = false;
 	
 }
@@ -765,7 +765,7 @@ void
 stop()
 {
 	GlobalState::following_path = false;
-	publish_model_predictive_planner_single_motion_command(0.0, 0.0, carmen_get_time());
+	publish_neural_motion_planner_single_motion_command(0.0, 0.0, carmen_get_time());
 }
 
 
@@ -879,9 +879,9 @@ build_and_follow_path(double timestamp)
 					publish_robot_ackerman_motion_commands_eliminating_path_follower(path, timestamp);//ENTRA AQUI
 				}
 				path_follower_path = build_path_follower_path(path);
-				publish_model_predictive_planner_rrt_path_message(path_follower_path, timestamp);
-				printf("path_follower_path buildado e publicado o publish_model_predictive_planner_rrt_path_message\n");
-//				carmen_model_predictive_planner_publish_motion_plan_message(tree.paths[0], tree.paths_sizes[0]);
+				publish_neural_motion_planner_rrt_path_message(path_follower_path, timestamp);
+				printf("path_follower_path buildado e publicado o publish_neural_motion_planner_rrt_path_message\n");
+//				carmen_neural_motion_planner_publish_motion_plan_message(tree.paths[0], tree.paths_sizes[0]);
 			}
 			else if (GlobalState::path_has_collision_or_phi_exceeded && (path.size() > 0) && (fabs(GlobalState::last_odometry.v) < 0.03))
 			{
@@ -909,7 +909,7 @@ build_and_follow_path(double timestamp)
 //					distance_to_goal, GlobalState::robot_config.max_v, GlobalState::last_odometry.v, (int) path.size());
 			
 			/*printf("\n vai chamar o print_path_ dentro do build_and_follow_path\n");@CPINHO: ENTROU AQUI (263x) 
-			DEPOIS DO publish_model_predictive_planner_rrt_path_message (imediatamente antes dos cmds)
+			DEPOIS DO publish_neural_motion_planner_rrt_path_message (imediatamente antes dos cmds)
 			e NO FINAL (quando acabou o movimento) depois do publish_path_follower_motion_commands (nao tem mais rrt)*/
 			print_path_(path);//CPINHO: DESCOMENTEI AQUI
 			fflush(stdout);//CPINHO: DESCOMENTEI AQUI
@@ -950,8 +950,8 @@ build_and_follow_path_new(double timestamp)//NÃO RODOU ISSO
 			vector<carmen_robot_and_trailer_path_point_t> path = compute_plan(&tree);
 			if (tree.num_paths > 0 && path.size() > 0)
 			{
-				publish_model_predictive_planner_motion_commands(path, timestamp);
-				carmen_model_predictive_planner_publish_motion_plan_message(tree.paths[0], tree.paths_sizes[0]);
+				publish_neural_motion_planner_motion_commands(path, timestamp);
+				carmen_neural_motion_planner_publish_motion_plan_message(tree.paths[0], tree.paths_sizes[0]);
 			}
 			last_phi = GlobalState::last_odometry.phi;
 		}

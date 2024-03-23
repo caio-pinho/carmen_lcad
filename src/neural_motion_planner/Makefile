@@ -65,16 +65,16 @@ else
 	LFLAGS += `python3.8-config --embed --libs` -pthread
 endif
 
-SOURCES = model_predictive_planner_main.cpp model_predictive_planner.cpp \
-		model_predictive_planner_optimizer.cpp global_state.cpp publisher_util.cpp util.cpp pose.cpp \
-		model_predictive_planner_interface.c
+SOURCES = neural_motion_planner_main.cpp neural_motion_planner.cpp \
+		neural_motion_planner_optimizer.cpp global_state.cpp publisher_util.cpp util.cpp pose.cpp \
+		neural_motion_planner_interface.c
 
 PUBLIC_BINARIES = neural_motion_planner
-PUBLIC_LIBRARIES = libmodel_predictive_planner_interface.a libmodel_predictive_planner_optimizer.a
-PUBLIC_INCLUDES = model_predictive_planner_interface.h model_predictive_planner_message.h rrt_node.h robot_state.h command.h pose.h \
-		model_predictive_planner_optimizer.h
+PUBLIC_LIBRARIES = libmodel_neural_motion_planner_interface.a libmodel_neural_motion_planner_optimizer.a
+PUBLIC_INCLUDES = neural_motion_planner_interface.h neural_motion_planner_message.h rrt_node.h robot_state.h command.h pose.h \
+		neural_motion_planner_optimizer.h
 
-TARGETS = libcarmodel neural_motion_planner libmodel_predictive_planner_interface.a libmodel_predictive_planner_optimizer.a
+TARGETS = libcarmodel neural_motion_planner libmodel_neural_motion_planner_interface.a libmodel_neural_motion_planner_optimizer.a
 
 libcarmodel:
 	$(MAKE) -C $(CARMEN_HOME)/sharedlib/libcarmodel
@@ -82,13 +82,13 @@ clean: clean_libcarmodel
 clean_libcarmodel:
 	$(MAKE) clean -C $(CARMEN_HOME)/sharedlib/libcarmodel
 
-neural_motion_planner: model_predictive_planner_main.o model_predictive_planner.o \
-	model_predictive_planner_optimizer.o global_state.o publisher_util.o util.o pose.o command.o model_predictive_planner_interface.o
+neural_motion_planner: neural_motion_planner_main.o neural_motion_planner.o \
+	neural_motion_planner_optimizer.o global_state.o publisher_util.o util.o pose.o command.o neural_motion_planner_interface.o
 
 
-libmodel_predictive_planner_interface.a: model_predictive_planner_interface.o
+libmodel_neural_motion_planner_interface.a: neural_motion_planner_interface.o
 
-libmodel_predictive_planner_optimizer.a: model_predictive_planner_optimizer.o command.o
+libmodel_neural_motion_planner_optimizer.a: neural_motion_planner_optimizer.o command.o
 
 global_state: global_state.o
 

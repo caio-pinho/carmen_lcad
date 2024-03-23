@@ -1,5 +1,5 @@
-#ifndef MODEL_PREDICTIVE_PLANNER_MESSAGE_H
-#define MODEL_PREDICTIVE_PLANNER_MESSAGE_H
+#ifndef NEURAL_MOTION_PLANNER_MESSAGE_H
+#define NEURAL_MOTION_PLANNER_MESSAGE_H
 
 #include <carmen/carmen.h>
 
@@ -13,10 +13,10 @@ typedef struct
 	int	   plan_length;
 	double timestamp;
 	char  *host;
-} carmen_model_predictive_planner_motion_plan_message;
+} carmen_neural_motion_planner_motion_plan_message;
 
-#define CARMEN_MODEL_PREDICTIVE_PLANNER_MOTION_PLAN_MESSAGE_NAME "carmen_model_predictive_planner_motion_plan"
-#define CARMEN_MODEL_PREDICTIVE_PLANNER_MOTION_PLAN_MESSAGE_FMT "{<{double, double, double, double, double, double}:2>,int,double,string}"
+#define CARMEN_NEURAL_MOTION_PLANNER_MOTION_PLAN_MESSAGE_NAME "carmen_neural_motion_planner_motion_plan"
+#define CARMEN_NEURAL_MOTION_PLANNER_MOTION_PLAN_MESSAGE_FMT "{<{double, double, double, double, double, double}:2>,int,double,string}"
 
 #ifdef __cplusplus
 }

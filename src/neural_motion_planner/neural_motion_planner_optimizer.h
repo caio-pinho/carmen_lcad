@@ -1,12 +1,12 @@
 /*
- * model_predictive_planner_optimizer.h
+ * neural_motion_planner_optimizer.h
  *
- *  Created on: Jun 23, 2016
- *      Author: lcad
+ *  Created on: Mar 22, 2023
+ *      Author: caiopinho
  */
 
-#ifndef MODEL_PREDICTIVE_PLANNER_OPTIMIZER_H_
-#define MODEL_PREDICTIVE_PLANNER_OPTIMIZER_H_
+#ifndef NEURAL_MOTION_PLANNER_OPTIMIZER_H_
+#define NEURAL_MOTION_PLANNER_OPTIMIZER_H_
 
 #include <vector>
 #include <gsl/gsl_errno.h>
@@ -209,4 +209,4 @@ double mpp_optimization_function_f(const gsl_vector *x, void *params);
 void get_tcp_with_n_knots(TrajectoryControlParameters &tcp, int n);
 
 
-#endif /* MODEL_PREDICTIVE_PLANNER_OPTIMIZER_H_ */
+#endif /* NEURAL_MOTION_PLANNER_OPTIMIZER_H_ */

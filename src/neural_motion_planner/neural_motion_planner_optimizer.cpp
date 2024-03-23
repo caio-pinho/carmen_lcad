@@ -1,8 +1,8 @@
 /*
- * model_predictive_planner_optimizer.cpp
+ * neural_motion_planner_optimizer.cpp
  *
- *  Created on: Jun 23, 2016
- *      Author: lcad
+ *  Created on: Mar 22, 2023
+ *      Author: caiopinho
  */
 
 
@@ -16,7 +16,7 @@
 #include "robot_state.h"
 #include "model/global_state.h"
 #include "util.h"
-#include "model_predictive_planner_optimizer.h"
+#include "neural_motion_planner_optimizer.h"
 
 #include <fstream>
 #include "seqdense.h"

@@ -1,8 +1,8 @@
 /*
- * model_predictive_planner.cpp
+ * neural_motion_planner.cpp
  *
- *  Created on: Jun 22, 2016
- *      Author: alberto
+ *  Created on: Mar 22, 2023
+ *      Author: caiopinho
  */
 #include <stdio.h>
 #include <iostream>
@@ -19,8 +19,8 @@
 #include "model/global_state.h"
 #include "util.h"
 
-#include "model_predictive_planner.h"
-#include "model_predictive_planner_optimizer.h"
+#include "neural_motion_planner.h"
+#include "neural_motion_planner_optimizer.h"
 
 #include "g2o/types/slam2d/se2.h"
 
