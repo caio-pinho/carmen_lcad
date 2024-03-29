@@ -95,74 +95,6 @@ double get_distance(double x1, double y1, double x2, double y2) {
 }
 
 
-void
-plot_phi_profile(TrajectoryControlParameters tcp)
-{
-	static bool first_time = true;
-	static FILE *gnuplot_pipeMP;
-
-	if (first_time)
-	{
-		first_time = false;
-
-		gnuplot_pipeMP = popen("gnuplot", "w");
-		fprintf(gnuplot_pipeMP, "set xrange [0:7]\n");
-		fprintf(gnuplot_pipeMP, "set yrange [-0.75:0.75]\n");
-		fprintf(gnuplot_pipeMP, "set xlabel 't'\n");
-		fprintf(gnuplot_pipeMP, "set ylabel 'phi'\n");
-		fprintf(gnuplot_pipeMP, "set size ratio -1\n");
-	}
-
-	if (!tcp.valid)
-	{
-		fprintf(gnuplot_pipeMP, "plot 0\n");
-		fflush(gnuplot_pipeMP);
-		return;
-	}
-
-	FILE *mpp_file = fopen("mpp.txt", "w");
-
-	gsl_spline *phi_spline = get_phi_spline(tcp);
-	gsl_interp_accel *acc = gsl_interp_accel_alloc();
-	for (double t = 0.0; t < tcp.tt; t += tcp.tt / 100.0)
-		fprintf(mpp_file, "%f %f\n", t, gsl_spline_eval(phi_spline, t, acc));
-
-	gsl_spline_free(phi_spline);
-	gsl_interp_accel_free(acc);
-
-	fclose(mpp_file);
-
-	fprintf(gnuplot_pipeMP, "plot "
-			"'./mpp.txt' using 1:2 w l title 'phi' lt rgb 'red'");
-	for (unsigned int i = 0; i < tcp.k.size(); i++)
-		fprintf(gnuplot_pipeMP, ", '-' w p pt 7 ps 2");
-
-	fprintf(gnuplot_pipeMP, "\n");
-
-	// ************** Ver se esta igual a get_phi_spline() **************
-	vector<double> knots_x;
-	vector<double> knots_y;
-	for (unsigned int i = 0; i < tcp.k.size(); i++)
-	{
-		double x = (tcp.tt / (double) (tcp.k.size() - 1)) * (double) i;
-		double y = tcp.k[i];
-		knots_x.push_back(x);
-		knots_y.push_back(y);
-	}
-	knots_x[tcp.k.size() - 1] = tcp.tt; // Para evitar que erros de arredondamento na conta de x, acima, atrapalhe a leitura do ultimo ponto no spline
-	if (tcp.k.size() == 4)
-	{
-		knots_x[1] = tcp.tt / 4.0;
-		knots_x[2] = tcp.tt / 2.0;
-	}
-	// **************
-
-	for (unsigned int i = 0; i < tcp.k.size(); i++)
-		fprintf(gnuplot_pipeMP, "%lf %lf\ne\n", knots_x[i], knots_y[i]);
-
-	fflush(gnuplot_pipeMP);
-}
-
 
 void
 print_tcp(TrajectoryControlParameters tcp, double timestamp)
@@ -385,6 +317,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	{
 		t = tcp.tt;
 		command.v = v0 + tcp.a * t;
+		command.v = GlobalState::robot_config.max_v;
 		if (command.v > GlobalState::param_max_vel)
 			command.v = GlobalState::param_max_vel;
 		else if (command.v < GlobalState::param_max_vel_reverse)
@@ -395,7 +328,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 		}
 
 		double minimum_d = std::numeric_limits<double>::infinity();
-		for (int i = 0; i < steering_list.size(); i++) {
+		for (unsigned int i = 0; i < steering_list.size(); i++) {
     		std::vector<double> predicted_vehicle_location = get_predicted_vehicle_location(GlobalState::localizer_pose->x, GlobalState::localizer_pose->y, steering_list[i], GlobalState::localizer_pose->theta, command.v, t);
 			double d_to_s1 = get_distance(predicted_vehicle_location[0], predicted_vehicle_location[1], GlobalState::goal_pose->x, GlobalState::goal_pose->y);
 			if (d_to_s1 < minimum_d) { 
@@ -1612,9 +1545,6 @@ get_complete_optimized_trajectory_control_parameters(TrajectoryControlParameters
 
 	get_optimization_params(params, target_v, &tcp_complete, &target_td, 2.5, max_iterations, mpp_optimization_function_g);
 	tcp_complete = get_optimized_trajectory_control_parameters(tcp_complete, params);
-
-//	plot_phi_profile(tcp_complete);
-//	print_tcp(tcp_complete, carmen_get_time());
 
 #ifdef PUBLISH_PLAN_TREE
 	TrajectoryDimensions td = target_td;
