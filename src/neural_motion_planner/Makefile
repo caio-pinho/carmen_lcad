@@ -23,12 +23,6 @@ IFLAGS += -I/usr/include/python3.5 -I/usr/include/python3.6 -I/usr/include/pytho
 LFLAGS += -L$(CARMEN_HOME)/sharedlib/prob_models
 LFLAGS += -L$(CARMEN_HOME)/sharedlib/libcarmodel
 
-#IFLAGS += -I$(CARMEN_HOME)/src/neural_motion_planner/libtorch/include/torch/csrc/api/include
-#LFLAGS += -L$(CARMEN_HOME)/src/neural_motion_planner/libtorch/include/torch/csrc/api/include
-
-
-
-
 #G2O
 IFLAGS += -I/usr/include/eigen3 
 IFLAGS += -I/usr/include/suitesparse -I/usr/include/eigen3 -I/usr/local/include/EXTERNAL/csparse/ -I/usr/local/include/g2o/
@@ -42,18 +36,6 @@ LFLAGS += 	-lgrid_mapping -lmap_io -lmap_util -lmap_interface -lparam_interface 
 		-lrddf_interface -lmotion_planner_interface -lnavigator_gui_interface -llocalize_ackerman_core \
 		-lcollision_detection -lcarmodel -lgsl -lgslcblas -lm -lford_escape_hybrid_interface -lmoving_objects_interface \
 		-ltask_manager_interface -lvoice_interface_interface
-			
-# Path to the LibTorch distribution
-LIBTORCH = $(CARMEN_HOME)/src/neural_motion_planner/libtorch
-IFLAGS += -I$(CARMEN_HOME)/src/neural_motion_planner/libtorch/include
-LFLAGS += -L$(CARMEN_HOME)/src/neural_motion_planner/libtorch/include
-LFLAGS += -L$(CARMEN_HOME)/src/neural_motion_planner/libtorch/lib -ltorch -lc10 -lkineto -ltorch_cpu 
-CXXFLAGS += -I $(LIBTORCH)/include -I $(LIBTORCH)/include/torch/csrc/api/include -L$(LIBTORCH)/lib -std=c++17
-
-
-
-# Linker flags
-LDFLAGS = -L $(LIBTORCH)/lib -ltorch -lc10 -lkineto -ltorch_cpu 
 
 UBUNTU_VERSION ="$(shell cat /etc/issue | grep Ubuntu | cut -c8-12)"
 #$(warning now we reached ifeq UBUNTU_VERSION=$(UBUNTU_VERSION))

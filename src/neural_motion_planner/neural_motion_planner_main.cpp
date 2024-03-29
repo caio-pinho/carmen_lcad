@@ -31,9 +31,6 @@
 #include <iomanip>
 #include <sstream>
 
-bool enviou_goal = false;
-
-
 Tree tree;
 int g_teacher_mode = 0;
 carmen_behavior_selector_path_goals_and_annotations_message *path_goals_and_annotations_message = NULL;
@@ -107,12 +104,9 @@ publish_neural_motion_planner_motion_commands(vector<carmen_robot_and_trailer_pa
 		
 		i++;
 	}
-	
-	
+		
 	num_commands = path.size();
-
-	enviou_goal = false;
-
+	
 	if (GlobalState::use_obstacle_avoider)
 	{
 		if (!g_teacher_mode) { // standard operation
@@ -189,9 +183,6 @@ publish_neural_motion_planner_rrt_path_message(list<RRT_Path_Edge> path, double 
 		msg.path[i].phi = it->command.phi;
 		msg.path[i].time = it->time;
 
-		if (GlobalState::following_path&&!enviou_goal) {
-		enviou_goal = true;
-		}
 	}
 	Publisher_Util::publish_rrt_path_message(&msg);
 	free(msg.path);
@@ -434,58 +425,6 @@ publish_neural_motion_planner_single_motion_command_new(double v, double phi, do
 	publish_neural_motion_planner_motion_commands(path, timestamp);
 
 	publish_path_follower_single_motion_command(3.0, phi, timestamp);//era 0.0 mudei para 3.0
-}
-
-void
-go_new()
-{
-	GlobalState::following_path = true;
-
-	int numcmds = 0;
-	while (numcmds < 1500) {
-		double timestamp = carmen_get_time();
-		string tmstmp = to_string(timestamp);
-		string dectmstmp = tmstmp.substr(10,5);
-		if (strcmp(dectmstmp.c_str(),".0000") == 0 || strcmp(dectmstmp.c_str(),".0500") == 0 || strcmp(dectmstmp.c_str(),".1000") == 0 || strcmp(dectmstmp.c_str(),".1500") == 0 || strcmp(dectmstmp.c_str(),".2000") == 0 || strcmp(dectmstmp.c_str(),".2500") == 0 || strcmp(dectmstmp.c_str(),".3000") == 0 || strcmp(dectmstmp.c_str(),".3500") == 0 || strcmp(dectmstmp.c_str(),".4000") == 0 || strcmp(dectmstmp.c_str(),".4500") == 0 || strcmp(dectmstmp.c_str(),".5000") == 0 || strcmp(dectmstmp.c_str(),".5500") == 0 || strcmp(dectmstmp.c_str(),".6000") == 0 || strcmp(dectmstmp.c_str(),".6500") == 0 || strcmp(dectmstmp.c_str(),".7000") == 0 || strcmp(dectmstmp.c_str(),".7500") == 0 || strcmp(dectmstmp.c_str(),".8000") == 0 || strcmp(dectmstmp.c_str(),".8500") == 0 || strcmp(dectmstmp.c_str(),".9000") == 0 || strcmp(dectmstmp.c_str(),".9500") == 0)  {
-			publish_neural_motion_planner_single_motion_command_new(0.0, 0.0, carmen_get_time());
-			numcmds += 1;
-		}
-	}
-}
-
-
-
-void
-publish_neural_motion_planner_single_motion_command_new_original(double v, double phi, double timestamp)
-{
-	vector<carmen_robot_and_trailer_path_point_t> path;
-
-	carmen_robot_and_trailer_path_point_t traj;
-	traj.v = v;//era v
-	traj.phi = phi;
-	traj.time = 0.02;//era 1.0
-	traj.x = GlobalState::localizer_pose->x;
-	traj.y = GlobalState::localizer_pose->y;
-	traj.theta = GlobalState::localizer_pose->theta;
-	traj.beta = GlobalState::localizer_pose->beta;
-	publish_path_follower_single_motion_command(3.0, phi, timestamp);
-}
-
-void
-go_new_original()
-{
-	GlobalState::following_path = true;
-
-	int numcmds = 0;
-	while (numcmds < 1500) {//era <300
-		double timestamp = carmen_get_time();
-		string tmstmp = to_string(timestamp);
-		string dectmstmp = tmstmp.substr(10,5);
-		if (strcmp(dectmstmp.c_str(),".0000") == 0 || strcmp(dectmstmp.c_str(),".0500") == 0 || strcmp(dectmstmp.c_str(),".1000") == 0 || strcmp(dectmstmp.c_str(),".1500") == 0 || strcmp(dectmstmp.c_str(),".2000") == 0 || strcmp(dectmstmp.c_str(),".2500") == 0 || strcmp(dectmstmp.c_str(),".3000") == 0 || strcmp(dectmstmp.c_str(),".3500") == 0 || strcmp(dectmstmp.c_str(),".4000") == 0 || strcmp(dectmstmp.c_str(),".4500") == 0 || strcmp(dectmstmp.c_str(),".5000") == 0 || strcmp(dectmstmp.c_str(),".5500") == 0 || strcmp(dectmstmp.c_str(),".6000") == 0 || strcmp(dectmstmp.c_str(),".6500") == 0 || strcmp(dectmstmp.c_str(),".7000") == 0 || strcmp(dectmstmp.c_str(),".7500") == 0 || strcmp(dectmstmp.c_str(),".8000") == 0 || strcmp(dectmstmp.c_str(),".8500") == 0 || strcmp(dectmstmp.c_str(),".9000") == 0 || strcmp(dectmstmp.c_str(),".9500") == 0)  {
-			publish_neural_motion_planner_single_motion_command_new_original(0.0, 0.0, carmen_get_time());
-			numcmds += 1;
-		}
-	}
 }
 
 

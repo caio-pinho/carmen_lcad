@@ -19,12 +19,7 @@
 #include "neural_motion_planner_optimizer.h"
 
 #include <fstream>
-#include "seqdense.h"
-#include "eml_net.h"
-#include "eml_common.h"
-#include "libtorch/include/torch/csrc/api/include/torch/torch.h"
 #include <vector>
-#include "libtorch/include/torch/script.h"
 #include <cmath>
 
 //#define PUBLISH_PLAN_TREE
@@ -50,8 +45,6 @@ bool use_obstacles = true;
 double steering_previous = 0.0;
 
 extern int use_unity_simulator;
-
-auto module = torch::jit::load("/mnt/Dados/caiopinho/carmen_lcad/model_clean_apenas_phi_diferencas_mais_complexo.pt");
 
 template<typename T>
 std::vector<double> linspace(T start_in, T end_in, int num_in)
@@ -80,6 +73,7 @@ std::vector<double> linspace(T start_in, T end_in, int num_in)
   return linspaced;
 }
 
+
 void print_vector(std::vector<double> vec)
 {
   std::cout << "size: " << vec.size() << std::endl;
@@ -88,11 +82,13 @@ void print_vector(std::vector<double> vec)
   std::cout << std::endl;
 }
 
+
 std::vector<double> get_predicted_vehicle_location(double x, double y, double steering_angle, double yaw, double v, double t) {
 	double wheel_heading = yaw + steering_angle;
 	double wheel_traveled_dis = v * t; //(timestamp - this->vars.t_previous);
 	return {x + wheel_traveled_dis * cos(wheel_heading), y + wheel_traveled_dis * sin(wheel_heading)};
 }
+
 
 double get_distance(double x1, double y1, double x2, double y2) {
     return std::sqrt(std::pow(x1 - x2, 2) + std::pow(y1 - y2, 2));
@@ -364,7 +360,7 @@ double
 compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, Command &command,
 		vector<carmen_robot_and_trailer_path_point_t> &path,
 		TrajectoryControlParameters tcp,
-		gsl_spline *phi_spline, double v0, double i_beta, double delta_t)
+		double v0, double i_beta, double delta_t)
 {
 
 	gsl_interp_accel *acc = gsl_interp_accel_alloc();
@@ -381,17 +377,13 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	int i = 0;
 	double t;
 	double distance_traveled = 0.0;
-	// Cada ponto na trajetoria marca uma posicao do robo e o delta_t para chegar aa proxima
 	path.push_back(convert_to_carmen_robot_and_trailer_path_point_t(robot_state, delta_t));
 	
-	double novo_t = 0.0;
-
 	std::vector<double> steering_list = linspace(-0.05235988, 0.05235988, 21);
 
 	for (t = delta_t; t < tcp.tt; t += delta_t)
 	{
 		t = tcp.tt;
-		novo_t += delta_t;
 		command.v = v0 + tcp.a * t;
 		if (command.v > GlobalState::param_max_vel)
 			command.v = GlobalState::param_max_vel;
@@ -402,13 +394,13 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 			steering += steering_previous;
 		}
 
-		double min_d = std::numeric_limits<double>::infinity();
+		double minimum_d = std::numeric_limits<double>::infinity();
 		for (int i = 0; i < steering_list.size(); i++) {
     		std::vector<double> predicted_vehicle_location = get_predicted_vehicle_location(GlobalState::localizer_pose->x, GlobalState::localizer_pose->y, steering_list[i], GlobalState::localizer_pose->theta, command.v, t);
 			double d_to_s1 = get_distance(predicted_vehicle_location[0], predicted_vehicle_location[1], GlobalState::goal_pose->x, GlobalState::goal_pose->y);
-			if (d_to_s1 < min_d) { 
+			if (d_to_s1 < minimum_d) { 
         		command.phi = steering_list[i]; 
-        		min_d = d_to_s1;
+        		minimum_d = d_to_s1;
     		}
 		}
 		steering_previous = command.phi;
@@ -514,7 +506,7 @@ simulate_car_from_parameters(TrajectoryDimensions &td,
 
 	Command command;
 	carmen_robot_and_trailer_traj_point_t robot_state;
-	double distance_traveled = compute_path_via_simulation(robot_state, command, path, tcp, phi_spline, v0, i_beta, delta_t);
+	double distance_traveled = compute_path_via_simulation(robot_state, command, path, tcp, v0, i_beta, delta_t);
 	gsl_spline_free(phi_spline);
 
 	carmen_robot_and_trailer_path_point_t furthest_point;
