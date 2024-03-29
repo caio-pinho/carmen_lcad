@@ -30,16 +30,12 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
-/*#include "seqdense.h"
-#include "eml_net.h"
-#include "eml_common.h"*/
 
 bool enviou_goal = false;
-//#define save_rddf_to_file
 
-Tree tree; //tree rooted on robot
+
+Tree tree;
 int g_teacher_mode = 0;
-//TrajectoryLookupTable *g_trajectory_lookup_table;
 carmen_behavior_selector_path_goals_and_annotations_message *path_goals_and_annotations_message = NULL;
 
 static int update_lookup_table = 0;
@@ -49,22 +45,6 @@ static char **argv_global;
 
 int use_unity_simulator = 0;
 
-//CPINHO: DESCOMENTEI A FUNCAO ABAIXO
-static void
-print_path_(vector<carmen_robot_and_trailer_path_point_t> path)
-{
-	for (unsigned int i = 0; (i < path.size()) && (i < 15); i++) {
-		printf("print_path_: v %5.3lf, phi %5.3lf, t %5.3lf, x %5.3lf, y %5.3lf, theta %5.3lf\n",
-				path[i].v, path[i].phi, path[i].time,
-				path[i].x, path[i].y,
-				path[i].theta);
-		fflush(stdout);//CPINHO ADICIONEI AQUI
-	}
-
-	//printf("\n");
-	fflush(stdout);
-}
-
 double original_model_predictive_planner_obstacles_safe_distance;
 
 double voice_interface_max_vel = 0.0;
@@ -73,19 +53,15 @@ double voice_interface_max_vel = 0.0;
 vector<carmen_robot_and_trailer_path_point_t>
 smooth_short_path(vector<carmen_robot_and_trailer_path_point_t> &original_path)
 {
-	/*printf("entrou no smooth_short_path\n"); @CPINHO: ENTROU AQUI DEPOIS QUE 
-	RECEBEU path_goals_and_annotations_message (ANTES DE PRINTAR  O PATH)*/
 	vector<carmen_robot_and_trailer_path_point_t> path = original_path;
 
-	static double stable_phi = 0.0;	// Ultimo phi de um path nao short
+	static double stable_phi = 0.0;
 	double distance_travelled = 0.0;
 	if (path.size() > 1)
 	{
-		printf("path.size() > 1\n");
 		distance_travelled = DIST2D(path[0], path[path.size() - 1]);
 		if (distance_travelled < 0.6)
 		{
-			printf("distance_travelled < 0.6\n");
 			for (unsigned int j = 0; j < path.size(); j++)
 				original_path[j].phi = stable_phi;
 		}
@@ -110,45 +86,15 @@ smooth_short_path(vector<carmen_robot_and_trailer_path_point_t> &original_path)
 void
 publish_neural_motion_planner_motion_commands(vector<carmen_robot_and_trailer_path_point_t> path, double timestamp)
 {
-	ofstream myfile;
-	ofstream file_generate_dataset;
-	myfile.open("all_publishers.txt", ios::in | ios::app);
-	file_generate_dataset.open("dataset.txt", ios::in | ios::app);
-
-	//myfile << "carmen_get_host():" << carmen_get_host() << "\n";
-	myfile << "GlobalState_localizer_pose->x:" << std::fixed << std::setprecision(3) << GlobalState::localizer_pose->x << "\n";//std::fixed
-	myfile << "GlobalState_localizer_pose->y:" << GlobalState::localizer_pose->y << "\n";
-	myfile << "GlobalState_localizer_pose->theta:" << GlobalState::localizer_pose->theta << "\n";
-	myfile << "GlobalState_last_odometry.v:" << GlobalState::last_odometry.v << "\n";
-	myfile << "GlobalState_last_odometry.phi:" << GlobalState::last_odometry.phi << "\n";
-	if (GlobalState::following_path) {
-	file_generate_dataset << "lx:" << std::fixed << std::setprecision(3) << GlobalState::localizer_pose->x << ";";//std::fixed
-	file_generate_dataset << "ly:" << GlobalState::localizer_pose->y << ";";
-	file_generate_dataset << "ltheta:" << GlobalState::localizer_pose->theta << ";";
-	file_generate_dataset << "lv:" << GlobalState::last_odometry.v << ";";
-	file_generate_dataset << "lphi:" << GlobalState::last_odometry.phi << ";";
-	}
-	//myfile << "GlobalState::localizer_pose_timestamp:" << GlobalState::localizer_pose_timestamp << "\n";//SO RETORNOU 0
-
-	/*printf("entrou no publish_neural_motion_planner_motion_commands\n"); @CPINHO: ENTRA AQUI DEPOIS QUE 
-	ENTRA NO publish_robot_ackerman_motion_commands_eliminating_path_follower*/
+	
 	if (!GlobalState::following_path) {
-		//printf("nao estah following_path\n");//CPINHO: PASSANDO POR AQUI ANTES DE INICIAR O MOVIMENTO (ANTES DE GERAR CMDS)
 		return;
 	}
 	carmen_robot_and_trailer_motion_command_t *commands =
 			(carmen_robot_and_trailer_motion_command_t *) (malloc(path.size() * sizeof(carmen_robot_and_trailer_motion_command_t)));
 	int i = 0;
-
-	auto now = std::chrono::system_clock::now();
-	auto in_time_t = std::chrono::system_clock::to_time_t(now);
-    std::stringstream datetime;
-    datetime << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %X");
-	
-	//myfile.open("sent_commands_complete_"+ datetime.str() + ".txt", ios::in | ios::app);
 	
 	int num_commands = path.size();
-	myfile << "num_commands:" << num_commands << "\n";
 	for (std::vector<carmen_robot_and_trailer_path_point_t>::iterator it = path.begin();	it != path.end(); ++it)//i < 100; ++it)//it != path.end(); ++it)
 	{
 		commands[i].v = it->v;
@@ -158,48 +104,25 @@ publish_neural_motion_planner_motion_commands(vector<carmen_robot_and_trailer_pa
 		commands[i].y = it->y;
 		commands[i].theta = it->theta;
 		commands[i].beta = it->beta;
-		myfile << "commands timestamp:" << timestamp << "\n";
-		//myfile << "commands i:" << i << "\n";
-		myfile << "commands v[" << i << "]:" << commands[i].v << "\n";
-		myfile << "commands phi[" << i << "]:" << commands[i].phi << "\n";
-		myfile << "commands t[" << i << "]:" << commands[i].time << "\n";
-		myfile <<  "commands x[" << i << "]:" << commands[i].x << "\n";
-		myfile << "commands y[" << i << "]:" << commands[i].y << "\n";
-		myfile << "commands theta[" << i << "]:" << commands[i].theta << "\n";
-		//myfile << "commands beta[" << i << "]:" << commands[i].beta << "\n";
-		
-		file_generate_dataset << "cv[" << i << "]:" << commands[i].v << ";";
-		file_generate_dataset << "cphi[" << i << "]:" << commands[i].phi << ";";
-		file_generate_dataset << "ct[" << i << "]:" << commands[i].time << ";";
-
 		
 		i++;
 	}
 	
 	
 	num_commands = path.size();
-	printf("num commands %i",num_commands);
-	
-	file_generate_dataset << "\n";
+
 	enviou_goal = false;
-	file_generate_dataset.close();
-	myfile.close();
+
 	if (GlobalState::use_obstacle_avoider)
 	{
 		if (!g_teacher_mode) { // standard operation
-			//new_commands();
-			carmen_robot_ackerman_publish_motion_command(commands, num_commands, timestamp);//COMENTEI AQUI PARA TESTAR O ENVIO DOS COMANDOS PELO COMANDO ANTERIOR
-			//printf("standard operation\n");//CPINHO: ENTROU AQUI DEPOIS QUE COMECOU A SEGUIR O PATH (GERANDO num commands)
-			//printf("motion command: %lf\n",commands[0].v);
+			carmen_robot_ackerman_publish_motion_command(commands, num_commands, timestamp);
 		}
 		else  {// mode to prevent sending mpp commands to the rest of the control hierarchy and interfaces.
 			carmen_robot_ackerman_publish_teacher_motion_command(commands, num_commands, timestamp);
-			printf("entrou no else do g_teacher_mode\n");
 		}
-	}
-	else {
+	} else {
 		carmen_base_ackerman_publish_motion_command(commands, num_commands, timestamp);
-		printf("entrou no else do use_obstacle_avoider\n");
 	}
 	free(commands);
 }
@@ -208,21 +131,14 @@ publish_neural_motion_planner_motion_commands(vector<carmen_robot_and_trailer_pa
 void
 publish_robot_ackerman_motion_commands_eliminating_path_follower(vector<carmen_robot_and_trailer_path_point_t> &original_path, double timestamp)
 {
-	vector<carmen_robot_and_trailer_path_point_t> path = original_path;//@CAIO EDITEI AQUI PRA RODAR PHIs	// A plicacao dos atrazos do robo agora são na saida do obstacle_avoider
-//	vector<carmen_robot_and_trailer_path_point_t> path = original_path;//apply_robot_delays(original_path);	// A plicacao dos atrazos do robo agora são na saida do obstacle_avoider
-	/*printf("\n vai chamar o print_path_ dentro do publish_robot_ackerman_motion_commands_eliminating_path_follower\n");@CPINHO: ENTRA AQUI DEPOIS 
-	QUE CRIA O PATH*/
-	//print_path_(path);//CPINHO: DESCOMENTEI AQUI, DEU RUIM
-	//fflush(stdout); //CPINHO: INSERI A LINHA AQUI
-	publish_neural_motion_planner_motion_commands(path, timestamp); //COMENTAR AQUI PARA NAO RODAR. ESSE QUE FAZ GERAR OS COMANDOS NORMAIS
+	vector<carmen_robot_and_trailer_path_point_t> path = original_path;
+	publish_neural_motion_planner_motion_commands(path, timestamp);
 }
 
 
 void
 publish_neural_motion_planner_rrt_path_message(list<RRT_Path_Edge> path, double timestamp)
 {
-	/*printf("entrou no publish_neural_motion_planner_rrt_path_message\n");@CPINHO: ENTROU (256x) 
-	DEPOIS DO N ESTA FOLLOWING PATH E DEPOIS EM STANDARD OPERATION*/
 	int i = 0;
 	rrt_path_message msg;
 	list<RRT_Path_Edge>::iterator it;
@@ -233,20 +149,17 @@ publish_neural_motion_planner_rrt_path_message(list<RRT_Path_Edge> path, double 
 
 	if (GlobalState::goal_pose)
 	{
-		printf("goalstate goal_pose verdadeiro\n");//@CPINHO: PASSOU AQUI DO COMECO ATE FINALIZAR O TRAJETO
 		msg.goal.x = GlobalState::goal_pose->x;
 		msg.goal.y = GlobalState::goal_pose->y;
 		msg.goal.theta = GlobalState::goal_pose->theta;
 	}
 	else
 	{
-		//printf("goalstate goal_pose falso\n");@CPÌNHO: NUNCA PASSOU AQUI
 		msg.goal.x = msg.goal.y = msg.goal.theta = 0.0;
 	}
 
 	if (path.empty())
 	{
-		// return;
 		msg.size = 0;
 		msg.path = NULL;
 	}
@@ -255,11 +168,7 @@ publish_neural_motion_planner_rrt_path_message(list<RRT_Path_Edge> path, double 
 		msg.size = path.size();
 		msg.path = (Edge_Struct *) malloc(sizeof(Edge_Struct) * msg.size);
 	}
-	ofstream file_path_publish_rrt;
-	ofstream file_generate_dataset;
-	//file_path_publish_rrt.open("path_publish_rrt.txt", ios::in | ios::app);
-	file_path_publish_rrt.open("all_publishers.txt", ios::in | ios::app);
-	file_generate_dataset.open("dataset.txt", ios::in | ios::app);
+
 	for (it = path.begin(); it != path.end(); it++, i++)
 	{
 		msg.path[i].p1.x = it->p1.pose.x;
@@ -268,15 +177,6 @@ publish_neural_motion_planner_rrt_path_message(list<RRT_Path_Edge> path, double 
 		//msg.path[i].p1.beta = it->p1.pose.beta;
 		msg.path[i].p1.v = it->p1.v_and_phi.v;
 		msg.path[i].p1.phi = it->p1.v_and_phi.phi;
-		//myfile << "i:" << i << "\n";
-
-		
-		//printf("msg.path[%d].p1.x: \n",i);
-		//printf("msg.path\n");
-		/*printf("msg.path[%d].p2.x: %5.3lf\n",i,msg.path[i].p2.x);
-		printf("msg.path[%d].p1.y: %5.3lf\n",i,msg.path[i].p1.y);
-		printf("msg.path[%d].p2.y: %5.3lf\n",i,msg.path[i].p2.y);*/
-
 
 		msg.path[i].p2.x = it->p2.pose.x;
 		msg.path[i].p2.y = it->p2.pose.y;
@@ -289,51 +189,17 @@ publish_neural_motion_planner_rrt_path_message(list<RRT_Path_Edge> path, double 
 		msg.path[i].phi = it->command.phi;
 		msg.path[i].time = it->time;
 
-		file_path_publish_rrt << std::fixed << std::setprecision(6) << "publish rrt timestamp:" << timestamp<< "\n";
-		file_path_publish_rrt << std::fixed << std::setprecision(3) <<"publish rrt goal_pose.x:" << GlobalState::goal_pose->x << "\n";
-		file_path_publish_rrt << "publish rrt goal_pose.y:" << GlobalState::goal_pose->y << "\n";
-		file_path_publish_rrt << "publish rrt goal_pose.theta:" << GlobalState::goal_pose->theta << "\n";
-
 		if (GlobalState::following_path&&!enviou_goal) {
-		file_generate_dataset << std::fixed << std::setprecision(3) <<"gx:" << GlobalState::goal_pose->x << ";";
-		file_generate_dataset << "gy:" << GlobalState::goal_pose->y << ";";
-		file_generate_dataset << "gtheta:" << GlobalState::goal_pose->theta << ";";
 		enviou_goal = true;
 		}
-		
-		//file_path_publish_rrt << "path_publish_rrt_i:" << i << "\n";
-		file_path_publish_rrt << "msg.path[" << i << "].p1.x:" << msg.path[i].p1.x << "\n";
-		file_path_publish_rrt << "msg.path[" << i << "].p2.x:" << msg.path[i].p2.x << "\n";
-		file_path_publish_rrt << "msg.path[" << i << "].p1.y:" << msg.path[i].p1.y << "\n";
-		file_path_publish_rrt << "msg.path[" << i << "].p2.y:" << msg.path[i].p2.y << "\n";
-		file_path_publish_rrt << "msg.path[" << i << "].p1.v:" << msg.path[i].p1.v << "\n";
-		file_path_publish_rrt << "msg.path[" << i << "].p2.v:" << msg.path[i].p2.v << "\n";
-		file_path_publish_rrt << "msg.path[" << i << "].v:" << msg.path[i].v << "\n";
-		file_path_publish_rrt << "msg.path[" << i << "].p1.phi:" << msg.path[i].p1.phi << "\n";
-		file_path_publish_rrt << "msg.path[" << i << "].p2.phi:" << msg.path[i].p2.phi << "\n";
-		file_path_publish_rrt << "msg.path[" << i << "].phi:" << msg.path[i].phi << "\n";
-		file_path_publish_rrt << "msg.path[" << i << "].p1.beta:" << msg.path[i].p1.beta << "\n";
-		file_path_publish_rrt << "msg.path[" << i << "].p2.beta:" << msg.path[i].p2.beta << "\n";
-		file_path_publish_rrt << "msg.path[" << i << "].p1.theta:" << msg.path[i].p1.theta << "\n";
-		file_path_publish_rrt << "msg.path[" << i << "].p2.theta:" << msg.path[i].p2.theta << "\n";
-
-		file_path_publish_rrt << "msg.path[" << i << "].time:" << msg.path[i].time << "\n";
-
-
 	}
-	file_path_publish_rrt.close();
-	file_generate_dataset.close();
 	Publisher_Util::publish_rrt_path_message(&msg);
-
 	free(msg.path);
 }
-
 
 void
 publish_path_follower_motion_commands(carmen_robot_and_trailer_motion_command_t *commands, int num_commands, double timestamp)
 {
-	/*printf("entrou no publish_path_follower_motion_commands\n"); @CPINHO: DEPOIS QUE ACABOU DE FOLLOWING
-	O PATH ENTROU AQUI (DEPOIS QUE PAROU DE GERAR v, phi, t, x, y, theta)*/
 	if (GlobalState::use_obstacle_avoider)
 	{
 		if (!g_teacher_mode)  // standard operation
@@ -344,55 +210,6 @@ publish_path_follower_motion_commands(carmen_robot_and_trailer_motion_command_t 
 	else
 		carmen_base_ackerman_publish_motion_command(commands, num_commands, timestamp);
 }
-
-void 
-new_commands()//double goal_x, double goal_y, double goal_theta, double target_v, double localizer_x, double localizer_y, double localizer_theta, double localizer_v, double localizer_phi)
-{
-	carmen_robot_and_trailer_motion_command_t commands[2];
-	float values[9] = {7757527.502,-363658.677,-0.154,8.550,7757499.058,-363648.787,-0.527,7.656,0.033};
-	float command[3];
-	
-	//EmlError err = nnmodel_regress(values, 6, out, 2);
-	//double command_v = command[0];
-	//double command_phi = command[1];
-	//double command_t = command[2];
-	int numcmds = 0;
-	while (numcmds < 75) {
-		double timestamp = carmen_get_time();
-		string tmstmp = to_string(timestamp);
-		string dectmstmp = tmstmp.substr(10,7);
-		if (strcmp(dectmstmp.c_str(),".000000") == 0 || strcmp(dectmstmp.c_str(),".050000") == 0 || strcmp(dectmstmp.c_str(),".100000") == 0 || strcmp(dectmstmp.c_str(),".150000") == 0 || strcmp(dectmstmp.c_str(),".200000") == 0 || strcmp(dectmstmp.c_str(),".250000") == 0 || strcmp(dectmstmp.c_str(),".300000") == 0 || strcmp(dectmstmp.c_str(),".350000") == 0 || strcmp(dectmstmp.c_str(),".400000") == 0 || strcmp(dectmstmp.c_str(),".450000") == 0 || strcmp(dectmstmp.c_str(),".500000") == 0 || strcmp(dectmstmp.c_str(),".550000") == 0 || strcmp(dectmstmp.c_str(),".600000") == 0 || strcmp(dectmstmp.c_str(),".650000") == 0 || strcmp(dectmstmp.c_str(),".700000") == 0 || strcmp(dectmstmp.c_str(),".750000") == 0 || strcmp(dectmstmp.c_str(),".800000") == 0 || strcmp(dectmstmp.c_str(),".850000") == 0 || strcmp(dectmstmp.c_str(),".900000") == 0 || strcmp(dectmstmp.c_str(),".950000") == 0)  {
-			/*values[0] = 7757527.502;//GlobalState::goal_pose->x;
-			values[1] = 363658.677;//GlobalState::goal_pose->y;
-			values[2] = -0.154;//GlobalState::goal_pose->theta;
-			values[3] = GlobalState::robot_config.max_v;
-			values[4] = GlobalState::localizer_pose->x;
-			values[5] = GlobalState::localizer_pose->y;
-			values[6] = GlobalState::localizer_pose->theta;
-			values[7] = GlobalState::last_odometry.v;
-			values[8] = GlobalState::last_odometry.phi;*/
-			//values = {GlobalState::goal_pose->x, GlobalState::goal_pose->y, GlobalState::goal_pose->theta, GlobalState::robot_config.max_v, GlobalState::localizer_pose->x, GlobalState::localizer_pose->y, GlobalState::localizer_pose->theta, GlobalState::last_odometry.v, GlobalState::last_odometry.phi};
-			//seqdense_regress(values, 9, command, 3);//COMENTEI AQUI PRA TIRAR O ERRO DO OUTRO ARQUIVO (funcao ja declarada)
-			printf("numero do comando: %d\n",numcmds);
-			commands[0].v = command[0];
-			commands[0].phi = command[1];
-			commands[0].time = command[2];
-			commands[1] = commands[0];
-			fprintf( stderr, "command v: %f\n",command[0]);
-			fprintf( stderr, "command phi: %f\n",command[1]);
-			fprintf( stderr, "command t: %f\n",command[2]);
-			printf("timestamp multiplo: %s \n",tmstmp.c_str());
-			publish_path_follower_motion_commands(commands, 2, carmen_get_time());
-			//publish_neural_motion_planner_single_motion_command_new(command_v, command_phi, command_v, carmen_get_time());
-			numcmds += 1;
-		}
-	}
-	
-	//keras.predict (x, y, phi);
-	//return command_v, command_phi, command_t;
-	//publish_navigator_ackerman_status_message();
-}
-
 
 void
 publish_path_follower_single_motion_command(double v, double phi, double timestamp)
@@ -423,8 +240,6 @@ publish_neural_motion_planner_single_motion_command(double v, double phi, double
 	path.push_back(traj);
 	path.push_back(traj);
 	publish_neural_motion_planner_motion_commands(path, timestamp);
-
-//	publish_path_follower_single_motion_command(0.0, GlobalState::last_odometry.phi, timestamp);
 	publish_path_follower_single_motion_command(0.0, phi, timestamp);
 }
 
@@ -474,7 +289,7 @@ publish_navigator_ackerman_status_message()
 		msg.goal.theta = GlobalState::goal_pose->theta;
 		msg.goal.beta = GlobalState::goal_pose->beta;
 		msg.goal.v = (path_goals_and_annotations_message != NULL)? path_goals_and_annotations_message->goal_list->v: GlobalState::robot_config.max_v;
-		msg.goal.phi = 0.0; // @@@ Alberto: teria que preencher isso...
+		msg.goal.phi = 0.0;
 	}
 	else
 	{
@@ -482,7 +297,7 @@ publish_navigator_ackerman_status_message()
 		msg.goal.y	   = 0.0;
 		msg.goal.x	   = 0.0;
 		msg.goal.v 	   = 0.0;
-		msg.goal.phi = 0.0; // @@@ Alberto: teria que preencher isso...
+		msg.goal.phi = 0.0;
 	}
 
 	msg.host		= carmen_get_host();
@@ -493,7 +308,7 @@ publish_navigator_ackerman_status_message()
 	msg.robot.phi	= GlobalState::last_odometry.phi;
 	msg.timestamp	= GlobalState::localizer_pose_timestamp;
 
-	err = IPC_publishData(CARMEN_NAVIGATOR_ACKERMAN_STATUS_NAME, &msg); //COMENTEI ISSO AQUI PARA TESTAR
+	err = IPC_publishData(CARMEN_NAVIGATOR_ACKERMAN_STATUS_NAME, &msg);
 
 	carmen_test_ipc(err, "Could not publish", CARMEN_NAVIGATOR_ACKERMAN_STATUS_NAME);
 }
@@ -590,9 +405,9 @@ publish_neural_motion_planner_single_motion_command_new(double v, double phi, do
 	vector<carmen_robot_and_trailer_path_point_t> path;
 
 	carmen_robot_and_trailer_path_point_t traj;
-	traj.v = v;//era v
+	traj.v = v;
 	traj.phi = phi;
-	traj.time = 0.02;//era 1.0
+	traj.time = 0.02;
 	traj.x = GlobalState::localizer_pose->x;
 	traj.y = GlobalState::localizer_pose->y;
 	traj.theta = GlobalState::localizer_pose->theta;
@@ -615,26 +430,10 @@ publish_neural_motion_planner_single_motion_command_new(double v, double phi, do
 	//path.push_back(traj);
 	
 	}
-	ofstream file_path_publish_rrt;
-	file_path_publish_rrt.open("all_publishers.txt", ios::in | ios::app);
-	file_path_publish_rrt << "timestamp_novo:" << timestamp<< "\n";
-	//if (std::fmod(timestamp,0.050) == 0.000) {
-	//if (fabs(double(timestamp - (int)timestamp)-0.05) < double(timestamp - (int)timestamp) * .001) {
-	string tmstmp = to_string(timestamp);
-	string dectmstmp = tmstmp.substr(10,3);
-	file_path_publish_rrt << "timestamp_string:" << tmstmp<< "\n";
-	file_path_publish_rrt << "timestamp_substr:" << dectmstmp<< "\n";
-	file_path_publish_rrt.close();
-
-
-	//if (strcmp(dectmstmp.c_str(),".05") == 0) {
-
-		//printf("deu certo");
+	
 	publish_neural_motion_planner_motion_commands(path, timestamp);
 
-//	publish_path_follower_single_motion_command(0.0, GlobalState::last_odometry.phi, timestamp);
 	publish_path_follower_single_motion_command(3.0, phi, timestamp);//era 0.0 mudei para 3.0
-	//}
 }
 
 void
@@ -649,7 +448,6 @@ go_new()
 		string dectmstmp = tmstmp.substr(10,5);
 		if (strcmp(dectmstmp.c_str(),".0000") == 0 || strcmp(dectmstmp.c_str(),".0500") == 0 || strcmp(dectmstmp.c_str(),".1000") == 0 || strcmp(dectmstmp.c_str(),".1500") == 0 || strcmp(dectmstmp.c_str(),".2000") == 0 || strcmp(dectmstmp.c_str(),".2500") == 0 || strcmp(dectmstmp.c_str(),".3000") == 0 || strcmp(dectmstmp.c_str(),".3500") == 0 || strcmp(dectmstmp.c_str(),".4000") == 0 || strcmp(dectmstmp.c_str(),".4500") == 0 || strcmp(dectmstmp.c_str(),".5000") == 0 || strcmp(dectmstmp.c_str(),".5500") == 0 || strcmp(dectmstmp.c_str(),".6000") == 0 || strcmp(dectmstmp.c_str(),".6500") == 0 || strcmp(dectmstmp.c_str(),".7000") == 0 || strcmp(dectmstmp.c_str(),".7500") == 0 || strcmp(dectmstmp.c_str(),".8000") == 0 || strcmp(dectmstmp.c_str(),".8500") == 0 || strcmp(dectmstmp.c_str(),".9000") == 0 || strcmp(dectmstmp.c_str(),".9500") == 0)  {
 			publish_neural_motion_planner_single_motion_command_new(0.0, 0.0, carmen_get_time());
-			printf("timestamp multiplo: %s \n",tmstmp.c_str());
 			numcmds += 1;
 		}
 	}
@@ -670,87 +468,24 @@ publish_neural_motion_planner_single_motion_command_new_original(double v, doubl
 	traj.y = GlobalState::localizer_pose->y;
 	traj.theta = GlobalState::localizer_pose->theta;
 	traj.beta = GlobalState::localizer_pose->beta;
-	
-	
-	/*for (int w = 136; w < 1; w++) {// era w< 136
-		fprintf( stderr,"w: %d",w);
-		fprintf(stderr,"v dentro do for: %f",v);
-	
-		path.push_back(traj);
-		if (v > 1.150) {
-			v += 0.048;
-		} else {
-			v += 0.016;
-		}
-		traj.v = v;
-		if (w > 72) {
-			traj.time = 0.06;
-		}
-
-	//path.push_back(traj);
-	
-	}*/
-	ofstream file_path_publish_rrt;
-	file_path_publish_rrt.open("all_publishers.txt", ios::in | ios::app);
-	file_path_publish_rrt << "timestamp_novo:" << timestamp<< "\n";
-	//if (std::fmod(timestamp,0.050) == 0.000) {
-	//if (fabs(double(timestamp - (int)timestamp)-0.05) < double(timestamp - (int)timestamp) * .001) {
-	string tmstmp = to_string(timestamp);
-	string dectmstmp = tmstmp.substr(10,3);
-	file_path_publish_rrt << "timestamp_string:" << tmstmp<< "\n";
-	file_path_publish_rrt << "timestamp_substr:" << dectmstmp<< "\n";
-	file_path_publish_rrt.close();
-
-
-	//if (strcmp(dectmstmp.c_str(),".05") == 0) {
-
-		//printf("deu certo");
-	//publish_neural_motion_planner_motion_commands(path, timestamp);//ESSE OU O ULTIMO QUE FAZ O MOVIMENTO? FEZ O MOVIMENTO SEM ESSE
-
-//	publish_path_follower_single_motion_command(0.0, GlobalState::last_odometry.phi, timestamp);
-	publish_path_follower_single_motion_command(3.0, phi, timestamp);//era 0.0 mudei para 3.0 ESSE Q FAZ O MOVIMENTO!
-	//}
+	publish_path_follower_single_motion_command(3.0, phi, timestamp);
 }
-
-
-
 
 void
 go_new_original()
 {
 	GlobalState::following_path = true;
 
-	//volatile bool continua = true;
 	int numcmds = 0;
-	//while(continua) {
 	while (numcmds < 1500) {//era <300
 		double timestamp = carmen_get_time();
 		string tmstmp = to_string(timestamp);
 		string dectmstmp = tmstmp.substr(10,5);
 		if (strcmp(dectmstmp.c_str(),".0000") == 0 || strcmp(dectmstmp.c_str(),".0500") == 0 || strcmp(dectmstmp.c_str(),".1000") == 0 || strcmp(dectmstmp.c_str(),".1500") == 0 || strcmp(dectmstmp.c_str(),".2000") == 0 || strcmp(dectmstmp.c_str(),".2500") == 0 || strcmp(dectmstmp.c_str(),".3000") == 0 || strcmp(dectmstmp.c_str(),".3500") == 0 || strcmp(dectmstmp.c_str(),".4000") == 0 || strcmp(dectmstmp.c_str(),".4500") == 0 || strcmp(dectmstmp.c_str(),".5000") == 0 || strcmp(dectmstmp.c_str(),".5500") == 0 || strcmp(dectmstmp.c_str(),".6000") == 0 || strcmp(dectmstmp.c_str(),".6500") == 0 || strcmp(dectmstmp.c_str(),".7000") == 0 || strcmp(dectmstmp.c_str(),".7500") == 0 || strcmp(dectmstmp.c_str(),".8000") == 0 || strcmp(dectmstmp.c_str(),".8500") == 0 || strcmp(dectmstmp.c_str(),".9000") == 0 || strcmp(dectmstmp.c_str(),".9500") == 0)  {
-			printf("numero do comando: %d",numcmds);
 			publish_neural_motion_planner_single_motion_command_new_original(0.0, 0.0, carmen_get_time());
-			printf("timestamp multiplo: %s \n",tmstmp.c_str());
 			numcmds += 1;
-			//continua = false;
 		}
 	}
-
-	//for (int z = 0; z < 2000; z++) {
-	//publish_neural_motion_planner_single_motion_command(3.0, 0.0, carmen_get_time());
-	//}
-	/*publish_neural_motion_planner_single_motion_command(0.031, 0.0, carmen_get_time());
-	publish_neural_motion_planner_single_motion_command(0.047, 0.0, carmen_get_time());
-	publish_neural_motion_planner_single_motion_command(0.063, 0.0, carmen_get_time());
-	publish_neural_motion_planner_single_motion_command(0.079, 0.0, carmen_get_time());
-	publish_neural_motion_planner_single_motion_command(0.095, 0.0, carmen_get_time());
-	publish_neural_motion_planner_single_motion_command(0.111, 0.0, carmen_get_time());
-	publish_neural_motion_planner_single_motion_command(0.127, 0.0, carmen_get_time());
-	publish_neural_motion_planner_single_motion_command(0.143, 0.0, carmen_get_time());
-	publish_neural_motion_planner_single_motion_command(0.159, 0.0, carmen_get_time());
-	publish_neural_motion_planner_single_motion_command(0.175, 0.0, carmen_get_time());*/
-	//GlobalState::following_path = false;
-	
 }
 
 
@@ -836,96 +571,65 @@ goal_crossed()
 void
 build_and_follow_path(double timestamp)
 {
-	//printf("entrou no build_and_follow_path\n");//CPINHO: PASSOU AQUI DEPOIS DE ALGUNS LOOPS E DE RECEBER GLOBALPOS
 	list<RRT_Path_Edge> path_follower_path;
 	static double last_phi = 0.0;
 
 	if (GlobalState::goal_pose && (GlobalState::route_planner_state != PLANNING_FROM_POSE_TO_LANE))
 	{
-		fprintf(stderr,"entrou na primeira condicao\n");//CPINHO: ENTROU AQUI DESDE O COMECO DO LOG ATE O FINAL
 		double distance_to_goal = DIST2D_P(GlobalState::goal_pose, GlobalState::localizer_pose);
 		if (((distance_to_goal < 1.0) && (fabs(GlobalState::robot_config.max_v) < 0.07) && (fabs(GlobalState::last_odometry.v) < 0.03)))// ||
-//			((distance_to_goal < 0.3) && (fabs(GlobalState::robot_config.max_v) < 0.07) && (fabs(GlobalState::last_odometry.v) < 0.5) &&
-//					(path_goals_and_annotations_message->number_of_poses == 1)))
 		{
-//			printf("*np %d, gls %d, dtg %5.2lf, max_v %5.2lf, v %5.2lf\n",
-//					path_goals_and_annotations_message->number_of_poses, path_goals_and_annotations_message->goal_list_size,
-//					distance_to_goal, GlobalState::robot_config.max_v, GlobalState::last_odometry.v);
-//			fflush(stdout);
-			printf("dist to goal <1 e baixa vel\n");
 			GlobalState::robot_config.max_v = 0.0;
 			if (GlobalState::following_path)
 			{
-				printf("globalstate estah following_path\n");
 				last_phi *= 0.95;
 				publish_path_follower_single_motion_command(0.0, last_phi, timestamp);
 			}
 			else	// Stop button
 			{
-				printf("globalstate nao estah following_path\n");
 				last_phi *= 0.9;
 				publish_path_follower_single_motion_command(0.0, last_phi, timestamp);
 			}
 		}
 		else
 		{
-			printf("distance to goal >1\n");//ENTRA AQUI
 			vector<carmen_robot_and_trailer_path_point_t> path = compute_plan(&tree);
 			if (!GlobalState::path_has_collision_or_phi_exceeded && (tree.num_paths > 0) && (path.size() > 0))
 			{
-				printf("globalstate nao tem colisao\n");//ENTRA AQUI
 				if (GlobalState::eliminate_path_follower) {
-					printf("eliminate_path_follower ta true\n");//ENTRA AQUI
-					publish_robot_ackerman_motion_commands_eliminating_path_follower(path, timestamp);//ENTRA AQUI
+					publish_robot_ackerman_motion_commands_eliminating_path_follower(path, timestamp);
 				}
 				path_follower_path = build_path_follower_path(path);
 				publish_neural_motion_planner_rrt_path_message(path_follower_path, timestamp);
-				printf("path_follower_path buildado e publicado o publish_neural_motion_planner_rrt_path_message\n");
-//				carmen_neural_motion_planner_publish_motion_plan_message(tree.paths[0], tree.paths_sizes[0]);
 			}
 			else if (GlobalState::path_has_collision_or_phi_exceeded && (path.size() > 0) && (fabs(GlobalState::last_odometry.v) < 0.03))
 			{
 				publish_path_follower_single_motion_command(0.0, path[0].phi, timestamp);
-				printf("publicando unico comando 0.0\n");
 			}
 			else
 			{
 				GlobalState::robot_config.max_v = 0.0;
 				if (GlobalState::following_path)
 				{
-					printf("following_path ta true\n");
 					last_phi *= 0.95;
 					publish_path_follower_single_motion_command(0.0, last_phi, timestamp);
 				}
 				else	// Stop button
 				{
-					printf("following_path ta false\n");
 					last_phi *= 0.9;
 					publish_path_follower_single_motion_command(0.0, last_phi, timestamp);
 				}
 			}
-//			printf(" np %d, gls %d, dtg %5.2lf, max_v %5.3lf, v %5.3lf, ps %d\n",
-//					path_goals_and_annotations_message->number_of_poses, path_goals_and_annotations_message->goal_list_size,
-//					distance_to_goal, GlobalState::robot_config.max_v, GlobalState::last_odometry.v, (int) path.size());
-			
-			/*printf("\n vai chamar o print_path_ dentro do build_and_follow_path\n");@CPINHO: ENTROU AQUI (263x) 
-			DEPOIS DO publish_neural_motion_planner_rrt_path_message (imediatamente antes dos cmds)
-			e NO FINAL (quando acabou o movimento) depois do publish_path_follower_motion_commands (nao tem mais rrt)*/
-			print_path_(path);//CPINHO: DESCOMENTEI AQUI
-			fflush(stdout);//CPINHO: DESCOMENTEI AQUI
-
 			last_phi = GlobalState::last_odometry.phi;
 		}
 		publish_navigator_ackerman_status_message();
-//		publish_plan_tree_for_navigator_gui(tree);//CPINHO: INVESTIGAR ISSO AQUI
 	}
 }
 
 
 void
-build_and_follow_path_new(double timestamp)//NÃO RODOU ISSO
+build_and_follow_path_new(double timestamp)
 {
-	printf("entrou no build_and_follow_path_new\n");//NÃO ENTROU AQUI
 	static double last_phi = 0.0;
 
 	if (GlobalState::goal_pose)
@@ -956,7 +660,6 @@ build_and_follow_path_new(double timestamp)//NÃO RODOU ISSO
 			last_phi = GlobalState::last_odometry.phi;
 		}
 		publish_navigator_ackerman_status_message();
-//		publish_plan_tree_for_navigator_gui(tree);
 	}
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -972,25 +675,19 @@ build_and_follow_path_new(double timestamp)//NÃO RODOU ISSO
 static void
 localize_ackerman_globalpos_message_handler(carmen_localize_ackerman_globalpos_message *msg)
 {
-	/*printf("recebeu msg localize_ackerman_globalpos_message_handler\n");@CPINHO: ENTROU AQUI DEPOIS DE ALGUNS LOOPS, 
-	TESTAR SE FOI QUANDO POSICIONEI O ROBO. NOVO TESTE, RECEBENDO SEMPRE */
 	if (!GlobalState::localizer_pose) {
 		GlobalState::localizer_pose = (carmen_robot_and_trailer_pose_t *) malloc(sizeof(carmen_robot_and_trailer_pose_t));
-		printf("localizer_pose não estava criado\n");//@CPINHO: NÃO PASSOU AQUI. NOVO TESTE: PASSOU AQUI NA PRIMEIRA EXECUCAO
 	}
 
 	*GlobalState::localizer_pose = {msg->globalpos.x, msg->globalpos.y, msg->globalpos.theta, msg->beta};
 
 	if (GlobalState::use_mpc) {
 		build_and_follow_path_new(msg->timestamp);
-		//printf("use_mpc true, usando build_and_follow_path_new\n");//  NÃo PASSOU POR AQUI
 	} else {
 		build_and_follow_path(msg->timestamp);
-		//printf("use_mpc false, usando build_and_follow_path\n");//PASSOU POR AQUI
 	}
 	if (msg->semi_trailer_type != GlobalState::semi_trailer_config.type)
 	{
-		printf("entrou no semi_trailer_type\n");// NÃO PASSOU POR AQUI
 		carmen_task_manager_read_semi_trailer_parameters(&GlobalState::semi_trailer_config, argc_global, argv_global, msg->semi_trailer_type);
 		carmen_collision_detection_set_semi_trailer_type(GlobalState::semi_trailer_config.type);
 	}
@@ -1000,7 +697,6 @@ localize_ackerman_globalpos_message_handler(carmen_localize_ackerman_globalpos_m
 static void
 simulator_ackerman_truepos_message_handler(carmen_simulator_ackerman_truepos_message *msg)
 {
-	printf("recebeu simulator_ackerman_truepos_message_handler\n");//NÃO PASSOU POR AQUI
 	GlobalState::last_odometry.v = msg->v;
 	GlobalState::last_odometry.phi = msg->phi;
 
@@ -1019,7 +715,6 @@ simulator_ackerman_truepos_message_handler(carmen_simulator_ackerman_truepos_mes
 static void
 path_goals_and_annotations_message_handler(carmen_behavior_selector_path_goals_and_annotations_message *msg)
 {
-	printf("recebeu path_goals_and_annotations_message\n");//CPINHO: COMECOU A RECEBER QUANDO CLIQUEI COMPUTE ROUTE
 	path_goals_and_annotations_message = msg;
 
 	Pose goal_pose;
@@ -1027,7 +722,6 @@ path_goals_and_annotations_message_handler(carmen_behavior_selector_path_goals_a
 
 	if ((msg->goal_list_size <= 0) || !msg->goal_list || !GlobalState::localizer_pose)
 	{
-		printf("Empty goal list or localize not received\n");
 		return;
 	}
 
@@ -1038,22 +732,10 @@ path_goals_and_annotations_message_handler(carmen_behavior_selector_path_goals_a
 	goal_pose.theta = carmen_normalize_theta(msg->goal_list[0].theta);
 	goal_pose.beta = msg->goal_list[0].beta;
 
-	ofstream file_path_publish_rrt;
-	ofstream file_generate_dataset;
-	file_path_publish_rrt.open("all_publishers.txt", ios::in | ios::app);
-	//file_generate_dataset.open("dataset.txt", ios::in | ios::app);
-	file_path_publish_rrt << "path goals and annot msg handlder GlobalState_robot_config.max_v_antes:" << GlobalState::robot_config.max_v << "\n";
-	file_path_publish_rrt << "path goals and annot msg handlder GlobalState_param_max_vel:" << GlobalState::param_max_vel << "\n";
-	
-
-
 	if (GlobalState::reverse_driving_flag)
 	{
 		if (msg->goal_list[0].v < 0.0)
 		{
-//			if (GlobalState::robot_config.max_v > 0.0)
-//				GlobalState::robot_config.max_v = GlobalState::param_max_vel_reverse;
-
 			desired_v = fmax(msg->goal_list[0].v, GlobalState::param_max_vel_reverse);
 
 			if (desired_v < GlobalState::robot_config.max_v)
@@ -1063,9 +745,6 @@ path_goals_and_annotations_message_handler(carmen_behavior_selector_path_goals_a
 		}
 		else
 		{
-//			if (GlobalState::robot_config.max_v < 0.0)	// Acaba de pedir inversao da velovidade de negativa para positiva
-//				GlobalState::robot_config.max_v = GlobalState::param_max_vel;
-
 			desired_v = fmin(msg->goal_list[0].v, GlobalState::param_max_vel);
 			if (desired_v > GlobalState::robot_config.max_v)
 				GlobalState::robot_config.max_v += (desired_v - GlobalState::robot_config.max_v) * 0.5;
@@ -1082,21 +761,6 @@ path_goals_and_annotations_message_handler(carmen_behavior_selector_path_goals_a
 			GlobalState::robot_config.max_v += (desired_v - GlobalState::robot_config.max_v) * 0.1;
 	}
 
-//	if (fabs(GlobalState::robot_config.max_v) < 0.0005)	// Para evitar aproximacoes que nunca chegam a zero.
-//		GlobalState::robot_config.max_v = 0.0;
-
-//	printf("*target_v %lf\n", GlobalState::robot_config.max_v);
-
-	file_path_publish_rrt << "path goals and annot msg handlder desired_v:" << desired_v << "\n";
-	/*if (GlobalState::following_path) {//DESCOMENTAR PARA GERAR O desired_v no dataset
-	file_generate_dataset << "dv:" << desired_v << ";";//<< std::fixed << std::setprecision(3)
-	}*/
-	file_path_publish_rrt << "path goals and annot msg handlder goal_list[0].v:" << msg->goal_list[0].v << "\n";
-	file_path_publish_rrt << "path goals and annot msg handlder GlobalState_robot_config.max_v_depois:" << GlobalState::robot_config.max_v << "\n";
-	//file_path_publish_rrt << "path goals and annot msg handlder GlobalState_param_max_vel:" << GlobalState::param_max_vel << "\n";
-	file_path_publish_rrt.close();
-	//file_generate_dataset.close();
-
 	GlobalState::set_goal_pose(goal_pose);
 }
 
@@ -1104,17 +768,12 @@ path_goals_and_annotations_message_handler(carmen_behavior_selector_path_goals_a
 static void
 base_ackerman_odometry_message_handler(carmen_base_ackerman_odometry_message *msg)
 {
-	//printf("recebeu base_ackerman_odometry_message\n");//CPINHO: RECEBENDO SEMPRE
 	GlobalState::last_odometry.v = msg->v;
 	GlobalState::last_odometry.phi = msg->phi;
-	//printf("v do last_odometry dentro do odometry message hander %5.3lf\n",msg->v);
 	if (fabs(msg->v) < GlobalState::eliminate_path_follower_transition_v) {
 		GlobalState::eliminate_path_follower = 1;
-		//CPINHO: PASSOU POR AQUI (DURANTE TODO PERIODO)
 	} else {
 		GlobalState::eliminate_path_follower = 0;
-		//printf("not eliminate_path_follower\n");
-		//CPINHO: NÃO PASSOU POR AQUI
 	}
 }
 
@@ -1122,7 +781,6 @@ base_ackerman_odometry_message_handler(carmen_base_ackerman_odometry_message *ms
 static void
 behavior_selector_state_message_handler(carmen_behavior_selector_state_message *msg)
 {
-	//printf("recebeu behavior_selector_state_message\n");//CPINHO: RECEBEU DEPOIS DE ALGUNS LOOPS//NOVO TESTE: RECEBEU SEMPRE
 	GlobalState::behavior_selector_task = msg->task;
 	GlobalState::behavior_selector_low_level_state = msg->low_level_state;
 	GlobalState::current_algorithm = msg->algorithm;
@@ -1141,23 +799,14 @@ behavior_selector_state_message_handler(carmen_behavior_selector_state_message *
 }
 
 
-//static void
-//carmen_obstacle_distance_mapper_map_message_handler(carmen_obstacle_distance_mapper_map_message *message)
-//{
-//	GlobalState::distance_map = message;
-//}
-
-
 static void
 carmen_obstacle_distance_mapper_compact_map_message_handler(carmen_obstacle_distance_mapper_compact_map_message *message)
 {
-	//printf("recebeu msg carmen_obstacle_distance_mapper_compact_map_message_handler\n");//CPINHO: RECEBENDO SEMPRE
 	static carmen_obstacle_distance_mapper_compact_map_message *compact_distance_map = NULL;
 	static carmen_obstacle_distance_mapper_map_message distance_map;
 
 	if (compact_distance_map == NULL)
 	{
-		//printf("compact_distance_map == NULL\n"); //CPINHO: NÃO PASSOU AQUI
 		carmen_obstacle_distance_mapper_create_new_map(&distance_map, message->config, message->host, message->timestamp);
 		compact_distance_map = (carmen_obstacle_distance_mapper_compact_map_message *) (calloc(1, sizeof(carmen_obstacle_distance_mapper_compact_map_message)));
 		carmen_obstacle_distance_mapper_cpy_compact_map_message_to_compact_map(compact_distance_map, message);
@@ -1165,7 +814,6 @@ carmen_obstacle_distance_mapper_compact_map_message_handler(carmen_obstacle_dist
 	}
 	else
 	{
-		//printf("compact distance_map not null\n"); //CPINHO: PASSANDO SEMPRE POR AQUI
 		carmen_obstacle_distance_mapper_clear_distance_map_message_using_compact_map(&distance_map, compact_distance_map, DISTANCE_MAP_HUGE_DISTANCE);
 		carmen_obstacle_distance_mapper_free_compact_distance_map(compact_distance_map);
 		carmen_obstacle_distance_mapper_cpy_compact_map_message_to_compact_map(compact_distance_map, message);
@@ -1187,11 +835,7 @@ carmen_behaviour_selector_compact_lane_contents_message_handler(carmen_obstacle_
 static void
 navigator_ackerman_go_message_handler()
 {
-	//GlobalState::following_path = true;
-	//new_commands();
 	go();
-	//go_new_original();
-	//GlobalState::following_path = true;
 }
 
 
@@ -1205,9 +849,7 @@ navigator_ackerman_stop_message_handler()
 void
 ford_escape_status_handler(carmen_ford_escape_status_message *msg)
 {
-	//TODO tratar tambem comandos de ultrapassagem (ou talvez tratar no behavior selector)
 	GlobalState::ford_escape_status.g_XGV_turn_signal = msg->g_XGV_turn_signal;
-	//Tratando se o navegador esta em no modo real ou em modo simulacao
 	GlobalState::ford_escape_online = true;
 }
 
@@ -1251,12 +893,10 @@ register_handlers()
 {
 	if (!GlobalState::use_truepos)
 	{
-		//printf("diferente de use_truepos\n");//CPINHO: PASSOU AQUI UMA VEZ (INICIO DO PROGRAMA)
 		carmen_localize_ackerman_subscribe_globalpos_message(NULL, (carmen_handler_t) localize_ackerman_globalpos_message_handler, CARMEN_SUBSCRIBE_LATEST);
 		carmen_base_ackerman_subscribe_odometry_message(NULL, (carmen_handler_t) base_ackerman_odometry_message_handler, CARMEN_SUBSCRIBE_LATEST);
 	}
 	else {
-		printf("nao eh diferente de use_truepos\n");//CPINHO:  NAO PASSOU AQUI
 		carmen_simulator_ackerman_subscribe_truepos_message(NULL, (carmen_handler_t) simulator_ackerman_truepos_message_handler, CARMEN_SUBSCRIBE_LATEST);
 	}
 	carmen_behavior_selector_subscribe_current_state_message(NULL, (carmen_handler_t) behavior_selector_state_message_handler, CARMEN_SUBSCRIBE_LATEST);
@@ -1278,20 +918,6 @@ register_handlers()
 			NULL, sizeof(carmen_navigator_ackerman_stop_message),
 			(carmen_handler_t)navigator_ackerman_stop_message_handler,
 			CARMEN_SUBSCRIBE_LATEST);
-
-//	carmen_subscribe_message(
-//			(char *) CARMEN_NAVIGATOR_ACKERMAN_SET_GOAL_NAME,
-//			(char *) CARMEN_NAVIGATOR_ACKERMAN_SET_GOAL_FMT,
-//			NULL, sizeof(carmen_navigator_ackerman_set_goal_message),
-//			(carmen_handler_t)navigator_ackerman_set_goal_message_handler,
-//			CARMEN_SUBSCRIBE_LATEST);
-
-//	carmen_moving_objects_point_clouds_subscribe_message(NULL,
-//			(carmen_handler_t) carmen_moving_objects_point_clouds_message_handler,
-//			CARMEN_SUBSCRIBE_LATEST);
-
-//	carmen_obstacle_distance_mapper_subscribe_message(NULL,
-//			(carmen_handler_t) carmen_obstacle_distance_mapper_map_message_handler, CARMEN_SUBSCRIBE_LATEST);
 
 	carmen_obstacle_distance_mapper_subscribe_compact_map_message(NULL,
 			(carmen_handler_t) carmen_obstacle_distance_mapper_compact_map_message_handler, CARMEN_SUBSCRIBE_LATEST);
@@ -1394,13 +1020,10 @@ read_parameters(int argc, char **argv)
 		carmen_task_manager_read_semi_trailer_parameters(&GlobalState::semi_trailer_config, argc, argv, GlobalState::semi_trailer_config.type);
 }
 
-//extern carmen_mapper_virtual_laser_message virtual_laser_message;
-//#define MAX_VIRTUAL_LASER_SAMPLES 10000
 
 int
 main(int argc, char **argv)
 {
-//    feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
 	argc_global = argc;
 	argv_global = argv;
@@ -1411,15 +1034,8 @@ main(int argc, char **argv)
 
 	register_handlers();
 	signal(SIGINT, signal_handler);
-//	signal(SIGFPE, signal_handler);
 
-//	g_trajectory_lookup_table = new TrajectoryLookupTable(update_lookup_table);
 	memset((void *) &tree, 0, sizeof(Tree));
-
-//	memset(&virtual_laser_message, 0, sizeof(carmen_mapper_virtual_laser_message));
-//	virtual_laser_message.positions = (carmen_position_t *) calloc(MAX_VIRTUAL_LASER_SAMPLES, sizeof(carmen_position_t));
-//	virtual_laser_message.colors = (char *) calloc(MAX_VIRTUAL_LASER_SAMPLES, sizeof(char));
-//	virtual_laser_message.host = carmen_get_host();
 
 	carmen_ipc_dispatch();
 
