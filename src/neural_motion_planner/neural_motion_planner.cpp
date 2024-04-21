@@ -736,14 +736,14 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 {
 	vector<vector<carmen_robot_and_trailer_path_point_t>> paths;
 	vector<carmen_robot_and_trailer_path_point_t> lane_in_local_pose, detailed_lane;
-	static TrajectoryControlParameters previous_good_tcp = {};
+	//static TrajectoryControlParameters previous_good_tcp = {};
 	static bool first_time = true;
 	static double last_timestamp = 0.0;
 	bool goal_in_lane = false;
 
 	if (first_time || !GlobalState::following_path)
 	{
-		previous_good_tcp.valid = false;
+		//previous_good_tcp.valid = false;
 		first_time = false;
 		last_timestamp = path_goals_and_annotations_message->timestamp;
 	}
@@ -773,32 +773,32 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 						 detailed_lane, last_odometry);
 #endif
 
-	bool use_lane = true;
+	//bool use_lane = true;
 	TrajectoryDimensions td = get_trajectory_dimensions_from_robot_state(localizer_pose, last_odometry, goal_pose);
-	TrajectoryControlParameters otcp = get_complete_optimized_trajectory_control_parameters(previous_good_tcp, td, target_v, detailed_lane, use_lane);
-	if (otcp.valid)
-	{
+	//TrajectoryControlParameters otcp = get_complete_optimized_trajectory_control_parameters(previous_good_tcp, td, target_v, detailed_lane, use_lane);
+	//if (otcp.valid)
+	//{
 		vector<carmen_robot_and_trailer_path_point_t> path;
 		vector<carmen_robot_and_trailer_path_point_t> path_local;
 
-		if (!get_path_from_optimized_tcp(path, path_local, otcp, td, localizer_pose))
-		{
-			paths.clear();
-			return (paths);
-		}
+		//if (!get_path_from_optimized_tcp(path, path_local, otcp, td, localizer_pose))
+		//{
+		//	paths.clear();
+		//	return (paths);
+		//}
 		paths[0] = path;
 		fflush(stdout);
 
-		previous_good_tcp = otcp;
-		last_timestamp = path_goals_and_annotations_message->timestamp;
-	}
-	else
-	{
-		if ((path_goals_and_annotations_message->timestamp - last_timestamp) > 0.5)
-			previous_good_tcp.valid = false;
+		//previous_good_tcp = otcp;
+		//last_timestamp = path_goals_and_annotations_message->timestamp;
+	//}
+	//else
+	//{
+	//	if ((path_goals_and_annotations_message->timestamp - last_timestamp) > 0.5)
+	//		previous_good_tcp.valid = false;
 
-		paths.clear();
-	}
+	//	paths.clear();
+	//}
 	
 	return (paths);
 }
