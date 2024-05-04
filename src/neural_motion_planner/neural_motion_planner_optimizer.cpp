@@ -378,27 +378,6 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 }
 
 
-void
-print_phi_profile(gsl_spline *phi_spline, gsl_interp_accel *acc, double total_t, bool display_phi_profile)
-{
-	if (!display_phi_profile)
-		return;
-
-	FILE *path_file = fopen("gnuplot_path2.txt", "w");
-
-	for (double t = 0.0; t < total_t; t += total_t / 100.0)
-		fprintf(path_file, "%f %f\n", t, gsl_spline_eval(phi_spline, t, acc));
-	fclose(path_file);
-
-	FILE *gnuplot_pipe = popen("gnuplot -persist", "w");
-	fprintf(gnuplot_pipe, "plot './gnuplot_path2.txt' using 1:2 with lines\n");
-	fflush(gnuplot_pipe);
-	pclose(gnuplot_pipe);
-	getchar();
-	system("pkill gnuplot");
-}
-
-
 double
 get_max_distance_in_path(vector<carmen_robot_and_trailer_path_point_t> path, carmen_robot_and_trailer_path_point_t &furthest_point)
 {

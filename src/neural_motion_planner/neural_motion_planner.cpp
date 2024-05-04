@@ -748,7 +748,7 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 {
 	vector<vector<carmen_robot_and_trailer_path_point_t>> paths;
 	vector<carmen_robot_and_trailer_path_point_t> lane_in_local_pose, detailed_lane;
-	static TrajectoryControlParameters previous_good_tcp = {};
+	//static TrajectoryControlParameters previous_good_tcp = {};
 	static bool first_time = true;
 	static double last_timestamp = 0.0;
 	bool goal_in_lane = false;
@@ -810,13 +810,13 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 //		printf("%lf   %lf\n", path[path.size() - 1].beta, goal_pose->beta);
 		fflush(stdout);
 
-		previous_good_tcp = otcp;
-		last_timestamp = path_goals_and_annotations_message->timestamp;
-	}
-	else
-	{
-		if ((path_goals_and_annotations_message->timestamp - last_timestamp) > 0.5)
-			previous_good_tcp.valid = false;
+		//previous_good_tcp = otcp;
+		//last_timestamp = path_goals_and_annotations_message->timestamp;
+	//}
+	//else
+	//{
+	//	if ((path_goals_and_annotations_message->timestamp - last_timestamp) > 0.5)
+	//		previous_good_tcp.valid = false;
 
 		paths.clear();
 	}
