@@ -717,7 +717,7 @@ TrajectoryDimensions
 get_trajectory_dimensions_from_robot_state(carmen_robot_and_trailer_pose_t *localizer_pose, Command last_odometry,	Pose *goal_pose)
 {
 	TrajectoryDimensions td;
-
+	printf("td.control_parameters.valid antes dentro do get_trajectory_dimensions_from_robot_state: %d\n", td.control_parameters.valid);//@CAIO: td.control_parameters.valid: 0
 	td.dist = sqrt((goal_pose->x - localizer_pose->x) * (goal_pose->x - localizer_pose->x) +
 			(goal_pose->y - localizer_pose->y) * (goal_pose->y - localizer_pose->y));
 	td.theta = carmen_normalize_theta(atan2(goal_pose->y - localizer_pose->y, goal_pose->x - localizer_pose->x) - localizer_pose->theta);
@@ -737,7 +737,7 @@ get_trajectory_dimensions_from_robot_state(carmen_robot_and_trailer_pose_t *loca
 	td.goal_pose.y = goal_in_car_reference[1];
 	td.goal_pose.theta = goal_in_car_reference[2];
 	td.goal_pose.beta = goal_pose->beta;
-
+	printf("td.control_parameters.valid depois dentro do get_trajectory_dimensions_from_robot_state: %d\n", td.control_parameters.valid);//@CAIO: td.control_parameters.valid: 0
 	return (td);
 }
 
@@ -752,14 +752,17 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 	static bool first_time = true;
 	static double last_timestamp = 0.0;
 	bool goal_in_lane = false;
+	printf("previous_good_tcp.valid antes: %d\n", previous_good_tcp.valid);//@CAIO: previous_good_tcp.valid: 0
 
 	if (first_time || !GlobalState::following_path)
 	{
+		printf("entrou no first_time e not following_path\n");//@CAIO: entrou no first_time
 		previous_good_tcp.valid = false;
 		first_time = false;
 		last_timestamp = path_goals_and_annotations_message->timestamp;
 	}
 
+	printf("previous_good_tcp.valid depois: %d\n", previous_good_tcp.valid);//@CAIO: previous_good_tcp.valid: 0
 	paths.resize(1);
 	if (!set_reverse_planning_global_state(target_v, last_odometry.v, previous_good_tcp))
 	{
@@ -786,8 +789,12 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 #endif
 
 	bool use_lane = true;
+	printf("previous_good_tcp.valid depois do depois: %d\n", previous_good_tcp.valid);//@CAIO: previous_good_tcp.valid: 0
 	TrajectoryDimensions td = get_trajectory_dimensions_from_robot_state(localizer_pose, last_odometry, goal_pose);
+	printf("previous_good_tcp.valid depois do depois2: %d\n", previous_good_tcp.valid);//@CAIO: previous_good_tcp.valid: 0
+	printf("td.control_parameters.valid depois do previous_good_tcp: %d\n", td.control_parameters.valid);//@CAIO: td.control_parameters.valid: 0
 	TrajectoryControlParameters otcp = get_complete_optimized_trajectory_control_parameters(previous_good_tcp, td, target_v, detailed_lane, use_lane);
+	printf("td.control_parameters.valid depois do otcp: %d\n", td.control_parameters.valid);//@CAIO: td.control_parameters.valid: 0
 	if (otcp.valid)
 	{
 		vector<carmen_robot_and_trailer_path_point_t> path;

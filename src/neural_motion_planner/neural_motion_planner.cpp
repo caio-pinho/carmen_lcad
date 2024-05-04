@@ -1,8 +1,8 @@
 /*
- * neural_motion_planner.cpp
+ * model_predictive_planner.cpp
  *
- *  Created on: Mar 22, 2023
- *      Author: caiopinho
+ *  Created on: Jun 22, 2016
+ *      Author: alberto
  */
 #include <stdio.h>
 #include <iostream>
@@ -19,14 +19,10 @@
 #include "model/global_state.h"
 #include "util.h"
 
-#include "neural_motion_planner.h"
-#include "neural_motion_planner_optimizer.h"
+#include "model_predictive_planner.h"
+#include "model_predictive_planner_optimizer.h"
 
 #include "g2o/types/slam2d/se2.h"
-
-#include <fstream>
-#include <iomanip>
-#include <sstream>
 
 using namespace g2o;
 
@@ -597,17 +593,14 @@ get_path_from_optimized_tcp(vector<carmen_robot_and_trailer_path_point_t> &path,
 		TrajectoryDimensions td,
 		carmen_robot_and_trailer_pose_t *localizer_pose)
 {
-
-	
-	if (GlobalState::use_mpc) {
+	if (GlobalState::use_mpc)
 		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i, 0.025);
-	} else if (use_unity_simulator) {
+	else if (use_unity_simulator)
 		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i, 0.02);
-	} else if (GlobalState::eliminate_path_follower) {
+	else if (GlobalState::eliminate_path_follower)
 		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i, 0.02);
-	} else {
+	else
 		path = simulate_car_from_parameters(td, otcp, td.v_i, td.beta_i);
-	}
 	path_local = path;
 	if (path_has_loop(td.dist, otcp.sf))
 	{
@@ -615,6 +608,8 @@ get_path_from_optimized_tcp(vector<carmen_robot_and_trailer_path_point_t> &path,
 		return (false);
 	}
 
+//	if (path_has_collision_or_phi_exceeded(path))
+//		return (false);
 	if (path_has_collision_or_phi_exceeded(path))
 		GlobalState::path_has_collision_or_phi_exceeded = true;
 	else
@@ -622,6 +617,22 @@ get_path_from_optimized_tcp(vector<carmen_robot_and_trailer_path_point_t> &path,
 
 	move_path_to_current_robot_pose(path, localizer_pose);
 
+//	printf("\n* MPP path\n");
+//	for (unsigned int i = 0; (i < path.size()) && (i < 15); i++)
+//	{
+//		printf("v %2.2lf, phi %5.3lf, t %5.3lf, x %5.3lf, y %5.3lf, theta %5.3lf\n",
+//				path[i].v, path[i].phi, path[i].time,
+//				path[i].x - localizer_pose->x, path[i].y - localizer_pose->y, path[i].theta);
+//	}
+//	fflush(stdout);
+
+	// Para evitar que o fim do path bata em obstáculos devido a atrazo na propagacao da posicao atual deles
+//	remove_some_poses_at_the_end_of_the_path(path);
+
+//	if (GlobalState::use_mpc)
+//		apply_system_latencies(path);
+//	else
+//		filter_path(path);
 	if (!GlobalState::use_mpc && !use_unity_simulator && !GlobalState::eliminate_path_follower)
 		filter_path(path);
 
@@ -660,7 +671,7 @@ goal_pose_vector_too_different(Pose goal_pose, Pose localizer_pose)
 
 bool
 goal_is_behind_car(Pose *localizer_pose, Pose *goal_pose)
-{
+{//funcao tem que ser melhorada. Usar coordenadas polares pode ser melhor.
 	SE2 robot_pose(localizer_pose->x, localizer_pose->y, localizer_pose->theta);
 	SE2 goal_in_world_reference(goal_pose->x, goal_pose->y, goal_pose->theta);
 	SE2 goal_in_car_reference = robot_pose.inverse() * goal_in_world_reference;
@@ -706,7 +717,7 @@ TrajectoryDimensions
 get_trajectory_dimensions_from_robot_state(carmen_robot_and_trailer_pose_t *localizer_pose, Command last_odometry,	Pose *goal_pose)
 {
 	TrajectoryDimensions td;
-
+	printf("td.control_parameters.valid antes dentro do get_trajectory_dimensions_from_robot_state: %d\n", td.control_parameters.valid);//@CAIO: td.control_parameters.valid: 0
 	td.dist = sqrt((goal_pose->x - localizer_pose->x) * (goal_pose->x - localizer_pose->x) +
 			(goal_pose->y - localizer_pose->y) * (goal_pose->y - localizer_pose->y));
 	td.theta = carmen_normalize_theta(atan2(goal_pose->y - localizer_pose->y, goal_pose->x - localizer_pose->x) - localizer_pose->theta);
@@ -726,6 +737,7 @@ get_trajectory_dimensions_from_robot_state(carmen_robot_and_trailer_pose_t *loca
 	td.goal_pose.y = goal_in_car_reference[1];
 	td.goal_pose.theta = goal_in_car_reference[2];
 	td.goal_pose.beta = goal_pose->beta;
+	printf("td.control_parameters.valid depois dentro do get_trajectory_dimensions_from_robot_state: %d\n", td.control_parameters.valid);//@CAIO: td.control_parameters.valid: 0
 	return (td);
 }
 
@@ -740,14 +752,17 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 	static bool first_time = true;
 	static double last_timestamp = 0.0;
 	bool goal_in_lane = false;
+	printf("previous_good_tcp.valid antes: %d\n", previous_good_tcp.valid);//@CAIO: previous_good_tcp.valid: 0
 
 	if (first_time || !GlobalState::following_path)
 	{
+		printf("entrou no first_time e not following_path\n");//@CAIO: entrou no first_time
 		previous_good_tcp.valid = false;
 		first_time = false;
 		last_timestamp = path_goals_and_annotations_message->timestamp;
 	}
 
+	printf("previous_good_tcp.valid depois: %d\n", previous_good_tcp.valid);//@CAIO: previous_good_tcp.valid: 0
 	paths.resize(1);
 	if (!set_reverse_planning_global_state(target_v, last_odometry.v, previous_good_tcp))
 	{
@@ -774,8 +789,12 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 #endif
 
 	bool use_lane = true;
+	printf("previous_good_tcp.valid depois do depois: %d\n", previous_good_tcp.valid);//@CAIO: previous_good_tcp.valid: 0
 	TrajectoryDimensions td = get_trajectory_dimensions_from_robot_state(localizer_pose, last_odometry, goal_pose);
+	printf("previous_good_tcp.valid depois do depois2: %d\n", previous_good_tcp.valid);//@CAIO: previous_good_tcp.valid: 0
+	printf("td.control_parameters.valid depois do previous_good_tcp: %d\n", td.control_parameters.valid);//@CAIO: td.control_parameters.valid: 0
 	TrajectoryControlParameters otcp = get_complete_optimized_trajectory_control_parameters(previous_good_tcp, td, target_v, detailed_lane, use_lane);
+	printf("td.control_parameters.valid depois do otcp: %d\n", td.control_parameters.valid);//@CAIO: td.control_parameters.valid: 0
 	if (otcp.valid)
 	{
 		vector<carmen_robot_and_trailer_path_point_t> path;
@@ -786,7 +805,9 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 			paths.clear();
 			return (paths);
 		}
+
 		paths[0] = path;
+//		printf("%lf   %lf\n", path[path.size() - 1].beta, goal_pose->beta);
 		fflush(stdout);
 
 		previous_good_tcp = otcp;
@@ -799,6 +820,7 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 
 		paths.clear();
 	}
-	
+	//SALVAR TAMBEM OS PATHS PARA VER PRA CADA POSE E GOAL QUAL FOI A SAIDA
+
 	return (paths);
 }

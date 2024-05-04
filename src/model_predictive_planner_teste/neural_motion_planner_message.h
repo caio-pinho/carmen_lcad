@@ -1,0 +1,25 @@
+#ifndef NEURAL_MOTION_PLANNER_MESSAGE_H
+#define NEURAL_MOTION_PLANNER_MESSAGE_H
+
+#include <carmen/carmen.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct
+{
+	carmen_robot_and_trailer_traj_point_t *plan;
+	int	   plan_length;
+	double timestamp;
+	char  *host;
+} carmen_neural_motion_planner_motion_plan_message;
+
+#define CARMEN_NEURAL_MOTION_PLANNER_MOTION_PLAN_MESSAGE_NAME "carmen_neural_motion_planner_motion_plan"
+#define CARMEN_NEURAL_MOTION_PLANNER_MOTION_PLAN_MESSAGE_FMT "{<{double, double, double, double, double, double}:2>,int,double,string}"
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

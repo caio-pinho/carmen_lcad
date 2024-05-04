@@ -69,3 +69,5 @@ Testar se com o for do k porém com um k que aproxime do tt, vai gerar a linha.:
 ag-20240303_162402: Treinamento com 200 segundos de time limit (pelas diferenças de x e y).
 ag-20240304_214517: Treinamento com 90 segundos de time limit (pelas diferenças de x, y, theta e v).
 ag-20240305_013454: Treinamento com 1296 segundos de time limit (pelas diferenças de x, y, theta e v).
+
+add_rrt_trajectory_message(motion_plan_drawer, message); é o que cria a linha verde do Motion Plan no Viewer 3D.
