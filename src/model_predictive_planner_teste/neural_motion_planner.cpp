@@ -1,8 +1,8 @@
 /*
- * model_predictive_planner.cpp
+ * neural_motion_planner.cpp
  *
- *  Created on: Jun 22, 2016
- *      Author: alberto
+ *  Created on: Mar 22, 2023
+ *      Author: caiopinho
  */
 #include <stdio.h>
 #include <iostream>
@@ -23,6 +23,10 @@
 #include "neural_motion_planner_optimizer.h"
 
 #include "g2o/types/slam2d/se2.h"
+
+#include <fstream>
+#include <iomanip>
+#include <sstream>
 
 using namespace g2o;
 

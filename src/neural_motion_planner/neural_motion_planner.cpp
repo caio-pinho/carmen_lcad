@@ -19,8 +19,8 @@
 #include "model/global_state.h"
 #include "util.h"
 
-#include "model_predictive_planner.h"
-#include "model_predictive_planner_optimizer.h"
+#include "neural_motion_planner.h"
+#include "neural_motion_planner_optimizer.h"
 
 #include "g2o/types/slam2d/se2.h"
 
@@ -737,7 +737,7 @@ get_trajectory_dimensions_from_robot_state(carmen_robot_and_trailer_pose_t *loca
 	td.goal_pose.y = goal_in_car_reference[1];
 	td.goal_pose.theta = goal_in_car_reference[2];
 	td.goal_pose.beta = goal_pose->beta;
-	printf("td.control_parameters.valid depois dentro do get_trajectory_dimensions_from_robot_state: %d\n", td.control_parameters.valid);//@CAIO: td.control_parameters.valid: 0
+	//printf("td.control_parameters.valid depois dentro do get_trajectory_dimensions_from_robot_state: %d\n", td.control_parameters.valid);//@CAIO: td.control_parameters.valid: 0
 	return (td);
 }
 
@@ -748,7 +748,7 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 {
 	vector<vector<carmen_robot_and_trailer_path_point_t>> paths;
 	vector<carmen_robot_and_trailer_path_point_t> lane_in_local_pose, detailed_lane;
-	//static TrajectoryControlParameters previous_good_tcp = {};
+	static TrajectoryControlParameters previous_good_tcp = {};
 	static bool first_time = true;
 	static double last_timestamp = 0.0;
 	bool goal_in_lane = false;

@@ -984,6 +984,3 @@ main(int argc, char **argv)
 	carmen_ipc_dispatch();
 
 }
-
-
-

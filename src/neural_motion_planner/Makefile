@@ -1,12 +1,12 @@
 include ../Makefile.conf
 
 # Module name and description
-MODULE_NAME = Neural Motion Planner
-MODULE_COMMENT = neural motion planner
+MODULE_NAME = Model-Predictive Motion Planner
+MODULE_COMMENT = Model-predictive motion planner
 
 LINK = g++
-CFLAGS += -fopenmp -D_GLIBCXX_USE_CXX11_ABI=0
-CXXFLAGS += -fopenmp -std=c++17 -D_GLIBCXX_USE_CXX11_ABI=0
+CFLAGS += -fopenmp
+CXXFLAGS += -fopenmp -std=c++0x
 #CXXFLAGS += -DDEBUG_OBJECTS_PLOT
 #CFLAGS += -msse3 -O4 -fopenmp
 #CXXFLAGS += -std=c++0x -msse3 -O4 -fopenmp
@@ -36,7 +36,7 @@ LFLAGS += 	-lgrid_mapping -lmap_io -lmap_util -lmap_interface -lparam_interface 
 		-lrddf_interface -lmotion_planner_interface -lnavigator_gui_interface -llocalize_ackerman_core \
 		-lcollision_detection -lcarmodel -lgsl -lgslcblas -lm -lford_escape_hybrid_interface -lmoving_objects_interface \
 		-ltask_manager_interface -lvoice_interface_interface
-
+			
 UBUNTU_VERSION ="$(shell cat /etc/issue | grep Ubuntu | cut -c8-12)"
 #$(warning now we reached ifeq UBUNTU_VERSION=$(UBUNTU_VERSION))
 ifeq ($(UBUNTU_VERSION),"16.04")
@@ -52,11 +52,11 @@ SOURCES = neural_motion_planner_main.cpp neural_motion_planner.cpp \
 		neural_motion_planner_interface.c
 
 PUBLIC_BINARIES = neural_motion_planner
-PUBLIC_LIBRARIES = libmodel_neural_motion_planner_interface.a libmodel_neural_motion_planner_optimizer.a
+PUBLIC_LIBRARIES = libneural_motion_planner_interface.a libneural_motion_planner_optimizer.a
 PUBLIC_INCLUDES = neural_motion_planner_interface.h neural_motion_planner_message.h rrt_node.h robot_state.h command.h pose.h \
 		neural_motion_planner_optimizer.h
 
-TARGETS = libcarmodel neural_motion_planner libmodel_neural_motion_planner_interface.a libmodel_neural_motion_planner_optimizer.a
+TARGETS = libcarmodel neural_motion_planner libneural_motion_planner_interface.a libneural_motion_planner_optimizer.a
 
 libcarmodel:
 	$(MAKE) -C $(CARMEN_HOME)/sharedlib/libcarmodel
@@ -68,9 +68,9 @@ neural_motion_planner: neural_motion_planner_main.o neural_motion_planner.o \
 	neural_motion_planner_optimizer.o global_state.o publisher_util.o util.o pose.o command.o neural_motion_planner_interface.o
 
 
-libmodel_neural_motion_planner_interface.a: neural_motion_planner_interface.o
+libneural_motion_planner_interface.a: neural_motion_planner_interface.o
 
-libmodel_neural_motion_planner_optimizer.a: neural_motion_planner_optimizer.o command.o
+libneural_motion_planner_optimizer.a: neural_motion_planner_optimizer.o command.o
 
 global_state: global_state.o
 

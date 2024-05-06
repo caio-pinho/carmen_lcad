@@ -460,6 +460,7 @@ simulate_car_from_parameters(TrajectoryDimensions &td,
 	Command command;
 	carmen_robot_and_trailer_traj_point_t robot_state;
 	double distance_traveled = compute_path_via_simulation(robot_state, command, path, tcp, phi_spline, v0, i_beta, delta_t);
+	printf("distance_traveled: %f\n", distance_traveled);
 
 	gsl_spline_free(phi_spline);
 
@@ -624,6 +625,13 @@ compute_a_and_t_from_s_foward(double s, double target_v,
 
 	params->suitable_tt = tcp_seed.tt;
 	params->suitable_acceleration = tcp_seed.a = a;
+	printf("a: %f\n", a);
+	printf("tt: %f\n", tcp_seed.tt);
+	printf("target_v: %f\n", target_v);
+	printf("s: %f\n", s);
+	printf("target_td.v_i: %f\n", target_td.v_i);
+	printf("target_td.dist: %f\n", target_td.dist);
+
 }
 
 #else

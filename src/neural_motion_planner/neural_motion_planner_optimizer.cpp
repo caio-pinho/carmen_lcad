@@ -1,8 +1,8 @@
 /*
- * model_predictive_planner_optimizer.cpp
+ * neural_motion_planner_optimizer.cpp
  *
- *  Created on: Jun 23, 2016
- *      Author: lcad
+ *  Created on: Mar 22, 2023
+ *      Author: caiopinho
  */
 
 
@@ -17,6 +17,11 @@
 #include "model/global_state.h"
 #include "util.h"
 #include "neural_motion_planner_optimizer.h"
+
+#include <fstream>
+#include <vector>
+#include <cmath>
+#include <limits>
 
 //#define PUBLISH_PLAN_TREE
 #ifdef PUBLISH_PLAN_TREE
@@ -38,78 +43,58 @@ copy_path_to_traj(carmen_robot_and_trailer_traj_point_t *traj, vector<carmen_rob
 
 bool use_obstacles = true;
 
-//extern carmen_mapper_virtual_laser_message virtual_laser_message;
+double steering_previous = 0.0;
 
 extern int use_unity_simulator;
 
-
-void
-plot_phi_profile(TrajectoryControlParameters tcp)
+template<typename T>
+std::vector<double> linspace(T start_in, T end_in, int num_in)
 {
-	static bool first_time = true;
-	static FILE *gnuplot_pipeMP;
 
-	if (first_time)
-	{
-		first_time = false;
+  std::vector<double> linspaced;
 
-		gnuplot_pipeMP = popen("gnuplot", "w"); // -persist to keep last plot after program closes
-		fprintf(gnuplot_pipeMP, "set xrange [0:7]\n");
-		fprintf(gnuplot_pipeMP, "set yrange [-0.75:0.75]\n");
-		fprintf(gnuplot_pipeMP, "set xlabel 't'\n");
-		fprintf(gnuplot_pipeMP, "set ylabel 'phi'\n");
-		fprintf(gnuplot_pipeMP, "set size ratio -1\n");
-	}
+  double start = static_cast<double>(start_in);
+  double end = static_cast<double>(end_in);
+  double num = static_cast<double>(num_in);
 
-	if (!tcp.valid)
-	{
-		fprintf(gnuplot_pipeMP, "plot 0\n");
-		fflush(gnuplot_pipeMP);
-		return;
-	}
+  if (num == 0) { return linspaced; }
+  if (num == 1) 
+    {
+      linspaced.push_back(start);
+      return linspaced;
+    }
 
-	FILE *mpp_file = fopen("mpp.txt", "w");
+  double delta = (end - start) / (num - 1);
 
-	gsl_spline *phi_spline = get_phi_spline(tcp);
-	gsl_interp_accel *acc = gsl_interp_accel_alloc();
-	for (double t = 0.0; t < tcp.tt; t += tcp.tt / 100.0)
-		fprintf(mpp_file, "%f %f\n", t, gsl_spline_eval(phi_spline, t, acc));
-
-	gsl_spline_free(phi_spline);
-	gsl_interp_accel_free(acc);
-
-	fclose(mpp_file);
-
-	fprintf(gnuplot_pipeMP, "plot "
-			"'./mpp.txt' using 1:2 w l title 'phi' lt rgb 'red'");
-	for (unsigned int i = 0; i < tcp.k.size(); i++)
-		fprintf(gnuplot_pipeMP, ", '-' w p pt 7 ps 2");
-
-	fprintf(gnuplot_pipeMP, "\n");
-
-	// ************** Ver se esta igual a get_phi_spline() **************
-	vector<double> knots_x;
-	vector<double> knots_y;
-	for (unsigned int i = 0; i < tcp.k.size(); i++)
-	{
-		double x = (tcp.tt / (double) (tcp.k.size() - 1)) * (double) i;
-		double y = tcp.k[i];
-		knots_x.push_back(x);
-		knots_y.push_back(y);
-	}
-	knots_x[tcp.k.size() - 1] = tcp.tt; // Para evitar que erros de arredondamento na conta de x, acima, atrapalhe a leitura do ultimo ponto no spline
-	if (tcp.k.size() == 4)
-	{
-		knots_x[1] = tcp.tt / 4.0;
-		knots_x[2] = tcp.tt / 2.0;
-	}
-	// **************
-
-	for (unsigned int i = 0; i < tcp.k.size(); i++)
-		fprintf(gnuplot_pipeMP, "%lf %lf\ne\n", knots_x[i], knots_y[i]);
-
-	fflush(gnuplot_pipeMP);
+  for(int i=0; i < num-1; ++i)
+    {
+      linspaced.push_back(start + delta * i);
+    }
+  linspaced.push_back(end); 
+  return linspaced;
 }
+
+
+void print_vector(std::vector<double> vec)
+{
+  std::cout << "size: " << vec.size() << std::endl;
+  for (double d : vec)
+    std::cout << d << " ";
+  std::cout << std::endl;
+}
+
+
+std::vector<double> get_predicted_vehicle_location(double x, double y, double steering_angle, double yaw, double v, double t) {
+	double wheel_heading = yaw + steering_angle;
+	double wheel_traveled_dis = v * t; //(timestamp - this->vars.t_previous);
+	return {x + wheel_traveled_dis * cos(wheel_heading), y + wheel_traveled_dis * sin(wheel_heading)};
+}
+
+
+double get_distance(double x1, double y1, double x2, double y2) {
+    return std::sqrt(std::pow(x1 - x2, 2) + std::pow(y1 - y2, 2));
+}
+
 
 
 void
@@ -308,72 +293,69 @@ double
 compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, Command &command,
 		vector<carmen_robot_and_trailer_path_point_t> &path,
 		TrajectoryControlParameters tcp,
-		gsl_spline *phi_spline, double v0, double i_beta, double delta_t)
+		double v0, double i_beta, double delta_t)
 {
-	gsl_interp_accel *acc = gsl_interp_accel_alloc();
 
+	//gsl_interp_accel *acc = gsl_interp_accel_alloc(); //@CAIO: comentei aqui
+	
 	robot_state.x = 0.0;
 	robot_state.y = 0.0;
 	robot_state.theta = 0.0;
 	robot_state.beta = i_beta;
 	robot_state.v = v0;
-	robot_state.phi = tcp.k[0];
+	robot_state.phi = 0.0; //tcp.k[0]; @CAIO: comentei aqui (alterei)
 
 	command.v = v0;
 	double multiple_delta_t = 3.0 * delta_t;
 	int i = 0;
 	double t;
 	double distance_traveled = 0.0;
-	// Cada ponto na trajetoria marca uma posicao do robo e o delta_t para chegar aa proxima
 	path.push_back(convert_to_carmen_robot_and_trailer_path_point_t(robot_state, delta_t));
+	
+	std::vector<double> steering_list = linspace(-0.05235988, 0.05235988, 21);
+	printf("delta_t: %f\n", delta_t);
+	printf("tcp.tt: %f\n", tcp.tt);
 	for (t = delta_t; t < tcp.tt; t += delta_t)
 	{
+		t = tcp.tt;
 		command.v = v0 + tcp.a * t;
+		command.v = GlobalState::robot_config.max_v;
 		if (command.v > GlobalState::param_max_vel)
 			command.v = GlobalState::param_max_vel;
 		else if (command.v < GlobalState::param_max_vel_reverse)
 			command.v = GlobalState::param_max_vel_reverse;
+		
+		for (auto& steering : steering_list) {
+			steering += steering_previous;
+		}
 
-		command.phi = gsl_spline_eval(phi_spline, t, acc);
+		double minimum_d = std::numeric_limits<double>::infinity();
+		for (unsigned int i = 0; i < steering_list.size(); i++) {
+    		std::vector<double> predicted_vehicle_location = get_predicted_vehicle_location(GlobalState::localizer_pose->x, GlobalState::localizer_pose->y, steering_list[i], GlobalState::localizer_pose->theta, command.v, t);
+			double d_to_s1 = get_distance(predicted_vehicle_location[0], predicted_vehicle_location[1], GlobalState::goal_pose->x, GlobalState::goal_pose->y);
+			if (d_to_s1 < minimum_d) { 
+        		command.phi = steering_list[i]; 
+        		minimum_d = d_to_s1;
+    		}
+		}
+		steering_previous = command.phi;
 
-//		if ((GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_SEMI_TRAILER) ||
-//			(GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_TRUCK_SEMI_TRAILER))
 		if ((GlobalState::semi_trailer_config.type != 0) && (GlobalState::route_planner_state ==  EXECUTING_OFFROAD_PLAN))
 			robot_state = carmen_libcarmodel_recalc_pos_ackerman(robot_state, command.v, command.phi, delta_t,
 					&distance_traveled, delta_t / 10.0, GlobalState::robot_config, GlobalState::semi_trailer_config);
 		else
-			robot_state = carmen_libcarmodel_recalc_pos_ackerman(robot_state, command.v, command.phi, delta_t,
-					&distance_traveled, delta_t / 3.0, GlobalState::robot_config, GlobalState::semi_trailer_config);
+			robot_state = carmen_libcarmodel_recalc_pos_ackerman(robot_state, command.v, command.phi, t / 2,
+					&distance_traveled, delta_t, GlobalState::robot_config, GlobalState::semi_trailer_config);//@CAIO: alterado de delta_t para t / 2;
 
 		// Cada ponto na trajetoria marca uma posicao do robo e o delta_t para chegar aa proxima
 		path.push_back(convert_to_carmen_robot_and_trailer_path_point_t(robot_state, delta_t));
-
+		
 		if (GlobalState::eliminate_path_follower && (i > 70))
 			delta_t = multiple_delta_t;
-
 		i++;
 	}
-
-	if ((tcp.tt - (t -  delta_t)) > 0.0)
-	{
-		double final_delta_t = tcp.tt - (t - delta_t);
-
-		command.v = v0 + tcp.a * tcp.tt;
-		if (command.v > GlobalState::param_max_vel)
-			command.v = GlobalState::param_max_vel;
-		else if (command.v < GlobalState::param_max_vel_reverse)
-			command.v = GlobalState::param_max_vel_reverse;
-		command.phi = gsl_spline_eval(phi_spline, tcp.tt, acc);
-
-		robot_state = carmen_libcarmodel_recalc_pos_ackerman(robot_state, command.v, command.phi, final_delta_t,
-				&distance_traveled, final_delta_t, GlobalState::robot_config, GlobalState::semi_trailer_config);
-
-		// Cada ponto na trajetoria marca uma posicao do robo e o delta_t para chegar aa proxima
-		path.push_back(convert_to_carmen_robot_and_trailer_path_point_t(robot_state, 0.0));
-	}
-
-	gsl_interp_accel_free(acc);
-
+	
+	//gsl_interp_accel_free(acc); @CAIO: comentei aqui
 	return (distance_traveled);
 }
 
@@ -434,23 +416,25 @@ simulate_car_from_parameters(TrajectoryDimensions &td,
 	if (!tcp.valid)
 		return (path);
 
-	gsl_spline *phi_spline = get_phi_spline(tcp);
+	//gsl_spline *phi_spline = get_phi_spline(tcp); @CAIO: comentei aqui
 
 	Command command;
 	carmen_robot_and_trailer_traj_point_t robot_state;
-	double distance_traveled = compute_path_via_simulation(robot_state, command, path, tcp, phi_spline, v0, i_beta, delta_t);
-
-	gsl_spline_free(phi_spline);
+	double distance_traveled = compute_path_via_simulation(robot_state, command, path, tcp, v0, i_beta, delta_t);
+	printf("distance_traveled: %f\n", distance_traveled);
+	//gsl_spline_free(phi_spline); @CAIO: comentei aqui
 
 	carmen_robot_and_trailer_path_point_t furthest_point;
-	td.dist = get_max_distance_in_path(path, furthest_point);	// @@@ Alberto: Por que nao o ultimo do ponto do path?
+	td.dist = get_max_distance_in_path(path, furthest_point);
 	td.theta = atan2(furthest_point.y, furthest_point.x);
 	td.d_yaw = furthest_point.theta;
-	td.phi_i = tcp.k[0];
+	td.phi_i = 0.0;//tcp.k[0]; @CAIO: comentei aqui
 	td.v_i = v0;
 	tcp.vf = command.v;
 	tcp.sf = distance_traveled;
 	td.control_parameters = tcp;
+
+	printf("path.size() dentro do scfp: %d\n", path.size());
 
 	return (path);
 }
@@ -570,15 +554,17 @@ compute_a_and_t_from_s_foward(double s, double target_v,
 		TrajectoryControlParameters &tcp_seed,
 		ObjectiveFunctionParams *params)
 {
+
 	// https://www.wolframalpha.com/input/?i=solve+s%3Dv*x%2B0.5*a*x%5E2
 	double a = (target_v * target_v - target_td.v_i * target_td.v_i) / (2.0 * target_td.dist);
 	double v = target_td.v_i;
 	if (a == 0.0)
 	{
-		if (target_v != 0.0)
+		if (target_v != 0.0) {
 			tcp_seed.tt = s / target_v;
-		else
+		} else {
 			tcp_seed.tt = 0.05;
+		}
 	}
 	else if (a > GlobalState::robot_config.maximum_acceleration_forward)
 	{
@@ -590,9 +576,9 @@ compute_a_and_t_from_s_foward(double s, double target_v,
 		a = -GlobalState::robot_config.maximum_deceleration_forward;
 		tcp_seed.tt = (sqrt(2.0 * a * s + v * v) - v) / a;
 	}
-	else
+	else {
 		tcp_seed.tt = (target_v - target_td.v_i) / a;
-
+	}
 	if (tcp_seed.tt > 200.0)
 		tcp_seed.tt = 200.0;
 	if (tcp_seed.tt < 0.05)
@@ -603,6 +589,13 @@ compute_a_and_t_from_s_foward(double s, double target_v,
 
 	params->suitable_tt = tcp_seed.tt;
 	params->suitable_acceleration = tcp_seed.a = a;
+
+	printf("a: %f\n", a);
+	printf("tt: %f\n", tcp_seed.tt);
+	printf("target_v: %f\n", target_v);
+	printf("s: %f\n", s);
+	printf("target_td.v_i: %f\n", target_td.v_i);
+	printf("target_td.dist: %f\n", target_td.dist);
 }
 
 #else
@@ -728,15 +721,16 @@ limit_tcp_phi(TrajectoryControlParameters &tcp)
 TrajectoryControlParameters
 fill_in_tcp(const gsl_vector *x, ObjectiveFunctionParams *params)
 {
+	printf("entrou no fill_in_tcp\n");
 	TrajectoryControlParameters tcp = {};
 
 	tcp.s = gsl_vector_get(x, 0);
 	if (tcp.s < 0.01)
 		tcp.s = 0.01;
 
-	tcp.k.push_back(params->target_td->phi_i);
-	for (unsigned int i = 1; i < x->size; i++)
-		tcp.k.push_back(gsl_vector_get(x, i));
+	tcp.k.push_back(params->target_td->phi_i); //@CAIO: comentei aqui
+	for (unsigned int i = 1; i < x->size; i++) //@CAIO: comentei aqui
+		tcp.k.push_back(gsl_vector_get(x, i)); //@CAIO: comentei aqui
 //	limit_tcp_phi(tcp);
 
 	compute_a_and_t_from_s(tcp.s, params->target_v, *params->target_td, tcp, params);
@@ -1040,6 +1034,10 @@ mpp_optimization_function_f(const gsl_vector *x, void *params)
 		return (1000000.0);
 
 	TrajectoryDimensions td;
+	//COMENTADO PARA DATASET ofstream optimizer_prints;
+	//COMENTADO PARA DATASET optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
+	//COMENTADO PARA DATASET optimizer_prints << "scfp: chamando pelo mpp_optimization_function_f\n";
+	//COMENTADO PARA DATASET optimizer_prints.close();
 	vector<carmen_robot_and_trailer_path_point_t> path = simulate_car_from_parameters(td, tcp, my_params->target_td->v_i, my_params->target_td->beta_i);
 
 //	double beta_activation_factor = get_beta_activation_factor();
@@ -1113,6 +1111,10 @@ mpp_optimization_function_g(const gsl_vector *x, void *params)
 		return (1000000.0);
 
 	TrajectoryDimensions td;
+	//COMENTADO PARA DATASET ofstream optimizer_prints;
+	//COMENTADO PARA DATASET optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
+	//COMENTADO PARA DATASET optimizer_prints << "scfp: chamando pelo mpp_optimization_function_g\n";
+	//COMENTADO PARA DATASET optimizer_prints.close();
 	vector<carmen_robot_and_trailer_path_point_t> path = simulate_car_from_parameters(td, tcp, my_params->target_td->v_i, my_params->target_td->beta_i);
 
 	double path_to_lane_distance = 0.0;
@@ -1199,6 +1201,7 @@ compute_suitable_acceleration_and_tt(ObjectiveFunctionParams &params,
 		target_v = 0.0;
 
 	tcp_seed.s = target_td.dist; // Pior caso: forcca otimizacao para o primeiro zero da distancia, evitando voltar de reh para atingir a distancia.
+	tcp_seed.valid = true; //@CAIO: adicionei aqui
 	compute_a_and_t_from_s(tcp_seed.s, target_v, target_td, tcp_seed, &params);
 }
 
@@ -1257,6 +1260,7 @@ get_tcp_with_n_knots(TrajectoryControlParameters &tcp, int n)
 TrajectoryControlParameters
 get_optimized_trajectory_control_parameters(TrajectoryControlParameters tcp_seed, ObjectiveFunctionParams &params)
 {
+	printf("get_optimized_trajectory_control_parameters: chamando\n");//@CAIO: passou aqui
 	int current_eliminate_path_follower_value = GlobalState::eliminate_path_follower;
 	GlobalState::eliminate_path_follower = 0;
 
@@ -1299,9 +1303,11 @@ get_optimized_trajectory_control_parameters(TrajectoryControlParameters tcp_seed
 
 	TrajectoryControlParameters tcp = fill_in_tcp(s->x, &params);
 
-	if (bad_tcp(tcp))
+	if (bad_tcp(tcp)) 
+	{//@CAIO: criei aqui
+		printf("get_optimized_trajectory_control_parameters: bad tcp\n"); //@CAIO: não entrou aqui
 		tcp.valid = false;
-
+	}//@CAIO: criei aqui
 	if ((tcp.tt < 0.05) || (params.plan_cost > params.max_plan_cost)) // too short plan or bad minimum (s->f should be close to zero) mudei de 0.05 para outro
 		tcp.valid = false;
 
@@ -1328,6 +1334,10 @@ double
 get_path_to_lane_distance(TrajectoryDimensions td,
 		TrajectoryControlParameters tcp, ObjectiveFunctionParams *my_params)
 {
+	//COMENTADO PARA DATASET ofstream optimizer_prints;
+	//COMENTADO PARA DATASET optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
+	//COMENTADO PARA DATASET optimizer_prints << "scfp: chamando pelo get_path_to_lane_distance\n";
+	//COMENTADO PARA DATASET optimizer_prints.close();
 	vector<carmen_robot_and_trailer_path_point_t> path = simulate_car_from_parameters(td, tcp, my_params->target_td->v_i, my_params->target_td->beta_i);
 	double path_to_lane_distance = 0.0;
 	if (my_params->use_lane && (my_params->detailed_lane.size() > 0) && (path.size() > 0))
@@ -1492,15 +1502,15 @@ get_complete_optimized_trajectory_control_parameters(TrajectoryControlParameters
 	TrajectoryControlParameters tcp_seed;
 	if (!previous_tcp.valid)
 	{
-		get_optimization_params(params, target_v, &tcp_seed, &target_td, 2.0, max_iterations, mpp_optimization_function_f);
+		//get_optimization_params(params, target_v, &tcp_seed, &target_td, 2.0, max_iterations, mpp_optimization_function_f);@CAIO: comentei aqui
 		compute_suitable_acceleration_and_tt(params, tcp_seed, target_td, target_v);
-		tcp_seed = get_n_knots_tcp_from_detailed_lane(detailed_lane, 3,
-				target_td.v_i, target_td.phi_i, target_td.d_yaw, tcp_seed.a,  tcp_seed.s, tcp_seed.tt);	// computa tcp com tres nos
+		//tcp_seed = get_n_knots_tcp_from_detailed_lane(detailed_lane, 3, @CAIO: comentei aqui
+		//		target_td.v_i, target_td.phi_i, target_td.d_yaw, tcp_seed.a,  tcp_seed.s, tcp_seed.tt);	// computa tcp com tres nos
 	}
 	else
 	{
-		tcp_seed = reduce_tcp_to_3_knots(previous_tcp);
-		get_optimization_params(params, target_v, &tcp_seed, &target_td, 2.0, max_iterations, mpp_optimization_function_f);
+		//tcp_seed = reduce_tcp_to_3_knots(previous_tcp); @CAIO: comentei aqui
+		//get_optimization_params(params, target_v, &tcp_seed, &target_td, 2.0, max_iterations, mpp_optimization_function_f); @CAIO: comentei aqui
 		compute_suitable_acceleration_and_tt(params, tcp_seed, target_td, target_v);
 	}
 
@@ -1510,30 +1520,27 @@ get_complete_optimized_trajectory_control_parameters(TrajectoryControlParameters
 
 	// Precisa chamar o otimizador abaixo porque o seguinte (optimized_lane_trajectory_control_parameters()) pode ficar preso em minimo local
 	// quando de obstaculos. O otimizador abaixo nao considera obstaculos ou a detailed_lane.
-	TrajectoryControlParameters tcp_complete = get_optimized_trajectory_control_parameters(tcp_seed, params);
+	TrajectoryControlParameters tcp_complete = tcp_seed;//get_optimized_trajectory_control_parameters(tcp_seed, params);//@CAIO: comentei aqui(alterei para tcp_complete = tcp_seed)
 #ifdef PUBLISH_PLAN_TREE
 	tcp_copy = tcp_complete;
 #endif
 
-	if (!tcp_complete.valid)
-		return (tcp_complete);
+	//if (!tcp_complete.valid) @CAIO: comentei aqui
+	//	return (tcp_complete); @CAIO: comentei aqui
 
 //	if (more_knots_required(target_td))
 //	if ((GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_SEMI_TRAILER) ||
 //		(GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_TRUCK_SEMI_TRAILER) ||
 //		(GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK) ||
 //		(target_td.dist < GlobalState::distance_between_waypoints / 1.5))
-	if (((GlobalState::semi_trailer_config.type != 0) && (GlobalState::route_planner_state ==  EXECUTING_OFFROAD_PLAN)) ||
-		(target_td.dist < GlobalState::distance_between_waypoints / 1.5))
-		get_tcp_with_n_knots(tcp_complete, 3);
-	else
-		get_tcp_with_n_knots(tcp_complete, 4);
+	//if (((GlobalState::semi_trailer_config.type != 0) && (GlobalState::route_planner_state ==  EXECUTING_OFFROAD_PLAN)) ||@CAIO: comentei aqui
+	//	(target_td.dist < GlobalState::distance_between_waypoints / 1.5))@CAIO: comentei aqui
+	//	get_tcp_with_n_knots(tcp_complete, 3);@CAIO: comentei aqui
+	//else@CAIO: comentei aqui
+	//	get_tcp_with_n_knots(tcp_complete, 4);@CAIO: comentei aqui
 
-	get_optimization_params(params, target_v, &tcp_complete, &target_td, 2.5, max_iterations, mpp_optimization_function_g);
-	tcp_complete = get_optimized_trajectory_control_parameters(tcp_complete, params);
-
-//	plot_phi_profile(tcp_complete);
-//	print_tcp(tcp_complete, carmen_get_time());
+	//get_optimization_params(params, target_v, &tcp_complete, &target_td, 2.5, max_iterations, mpp_optimization_function_g);@CAIO: comentei aqui
+	//tcp_complete = get_optimized_trajectory_control_parameters(tcp_complete, params); @CAIO: comentei aqui
 
 #ifdef PUBLISH_PLAN_TREE
 	TrajectoryDimensions td = target_td;

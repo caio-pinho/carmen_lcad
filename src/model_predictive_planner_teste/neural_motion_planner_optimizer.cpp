@@ -1,8 +1,8 @@
 /*
- * model_predictive_planner_optimizer.cpp
+ * neural_motion_planner_optimizer.cpp
  *
- *  Created on: Jun 23, 2016
- *      Author: lcad
+ *  Created on: Mar 22, 2023
+ *      Author: caiopinho
  */
 
 
