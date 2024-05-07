@@ -343,14 +343,12 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 	vector<carmen_robot_and_trailer_path_point_t> lane_in_local_pose, detailed_lane;
 	static TrajectoryControlParameters previous_good_tcp = {};
 	static bool first_time = true;
-	static double last_timestamp = 0.0;
 	bool goal_in_lane = false;
 
 	if (first_time || !GlobalState::following_path)
 	{
 		previous_good_tcp.valid = false;
 		first_time = false;
-		last_timestamp = path_goals_and_annotations_message->timestamp;
 	}
 
 	paths.resize(1);

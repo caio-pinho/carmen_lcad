@@ -96,34 +96,6 @@ double get_distance(double x1, double y1, double x2, double y2) {
 }
 
 
-
-void
-print_tcp(TrajectoryControlParameters tcp, double timestamp)
-{
-	printf("timestamp %lf, valid %d, tt %3.8lf, a %3.8lf, vf %3.8lf, sf %3.8lf, s %3.8lf\n",
-			timestamp, tcp.valid, tcp.tt, tcp.a, tcp.vf, tcp.sf, tcp.s);
-
-	for (unsigned int i = 0; i < tcp.k.size(); i++)
-		printf("k%d % 3.8lf, ", (int) i, tcp.k[i]);
-
-	printf(", ts %lf\n", carmen_get_time());
-}
-
-
-bool
-has_valid_discretization(TrajectoryDiscreteDimensions tdd)
-{
-	if ((tdd.dist < N_DIST) &&
-			(tdd.theta < N_THETA) &&
-			(tdd.d_yaw < N_D_YAW) &&
-			(tdd.phi_i < N_I_PHI) &&
-			(tdd.v_i < N_I_V))
-		return (true);
-	else
-		return (false);
-}
-
-
 float
 geometric_progression(int n, float scale_factor, float ratio, int index_of_element_zero)
 {
@@ -147,41 +119,6 @@ linear_progression(int n, double common, int index_of_element_zero)
 
 
 float
-get_initial_velocity_by_index(int index)
-{
-	return (geometric_progression(index, FIRST_I_V, RATIO_I_V, ZERO_I_V_I));
-}
-
-
-float
-get_delta_velocity_by_index(int index)
-{
-	return (geometric_progression(index, FIRST_D_V, RATIO_D_V, ZERO_D_V_I));
-}
-
-
-float
-get_i_phi_by_index(int index)
-{
-	return (geometric_progression(index, FIRST_I_PHI, RATIO_I_PHI, ZERO_I_PHI_I));
-}
-
-
-float
-get_k2_by_index(int index)
-{
-	return (geometric_progression(index, FIRST_K2, RATIO_K2, ZERO_K2_I));
-}
-
-
-float
-get_k3_by_index(int index)
-{
-	return (geometric_progression(index, FIRST_K3, RATIO_K3, ZERO_K3_I));
-}
-
-
-float
 get_distance_by_index(int index)
 {
 	return (geometric_progression(index, FIRST_DIST, RATIO_DIST, ZERO_DIST_I));
@@ -199,23 +136,6 @@ float
 get_d_yaw_by_index(int index)
 {
 	return (geometric_progression(index, FIRST_D_YAW, RATIO_D_YAW, ZERO_D_YAW_I));
-}
-
-
-TrajectoryDimensions
-convert_to_trajectory_dimensions(TrajectoryDiscreteDimensions tdd,
-		TrajectoryControlParameters tcp)
-{
-	TrajectoryDimensions td;
-
-	td.d_yaw = get_d_yaw_by_index(tdd.d_yaw);
-	td.dist = get_distance_by_index(tdd.dist);
-	td.phi_i = get_i_phi_by_index(tdd.phi_i);
-	td.theta = get_theta_by_index(tdd.theta);
-	td.v_i = get_initial_velocity_by_index(tdd.v_i);
-	td.control_parameters = tcp;
-
-	return (td);
 }
 
 
@@ -1195,29 +1115,6 @@ compute_suitable_acceleration_and_tt(ObjectiveFunctionParams &params,
 
 
 void
-get_optimization_params(ObjectiveFunctionParams &params, double target_v,
-		TrajectoryControlParameters *tcp_seed,
-		TrajectoryDimensions *target_td,
-		double max_plan_cost, int max_iterations,
-		double (* my_f) (const gsl_vector  *x, void *params))
-{
-	params.distance_by_index = fabs(get_distance_by_index(N_DIST - 1));
-	params.theta_by_index = fabs(get_theta_by_index(N_THETA - 1));
-	params.d_yaw_by_index = fabs(get_d_yaw_by_index(N_D_YAW - 1));
-	params.target_td = target_td;
-	params.tcp_seed = tcp_seed;
-	params.target_v = target_v;
-	params.path_size = 0;
-	params.my_f = my_f;
-	params.max_plan_cost = max_plan_cost;
-	params.o_step_size = F_STEP_SIZE;
-	params.o_tol = F_TOL;
-	params.o_epsabs = F_EPSABS;
-	params.max_iterations = max_iterations;
-}
-
-
-void
 get_tcp_with_n_knots(TrajectoryControlParameters &tcp, int n)
 {
 	gsl_spline *phi_spline = get_phi_spline(tcp);
@@ -1483,7 +1380,6 @@ get_complete_optimized_trajectory_control_parameters(TrajectoryControlParameters
 	TrajectoryControlParameters tcp_seed;
 	if (!previous_tcp.valid)
 	{
-		//get_optimization_params(params, target_v, &tcp_seed, &target_td, 2.0, max_iterations, mpp_optimization_function_f);@CAIO: comentei aqui
 		compute_suitable_acceleration_and_tt(params, tcp_seed, target_td, target_v);
 		//tcp_seed = get_n_knots_tcp_from_detailed_lane(detailed_lane, 3, @CAIO: comentei aqui
 		//		target_td.v_i, target_td.phi_i, target_td.d_yaw, tcp_seed.a,  tcp_seed.s, tcp_seed.tt);	// computa tcp com tres nos
@@ -1491,7 +1387,6 @@ get_complete_optimized_trajectory_control_parameters(TrajectoryControlParameters
 	else
 	{
 		//tcp_seed = reduce_tcp_to_3_knots(previous_tcp); @CAIO: comentei aqui
-		//get_optimization_params(params, target_v, &tcp_seed, &target_td, 2.0, max_iterations, mpp_optimization_function_f); @CAIO: comentei aqui
 		compute_suitable_acceleration_and_tt(params, tcp_seed, target_td, target_v);
 	}
 
@@ -1520,7 +1415,6 @@ get_complete_optimized_trajectory_control_parameters(TrajectoryControlParameters
 	//else@CAIO: comentei aqui
 	//	get_tcp_with_n_knots(tcp_complete, 4);@CAIO: comentei aqui
 
-	//get_optimization_params(params, target_v, &tcp_complete, &target_td, 2.5, max_iterations, mpp_optimization_function_g);@CAIO: comentei aqui
 	//tcp_complete = get_optimized_trajectory_control_parameters(tcp_complete, params); @CAIO: comentei aqui
 
 #ifdef PUBLISH_PLAN_TREE
