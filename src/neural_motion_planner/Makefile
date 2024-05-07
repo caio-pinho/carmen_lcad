@@ -1,8 +1,8 @@
 include ../Makefile.conf
 
 # Module name and description
-MODULE_NAME = Model-Predictive Motion Planner
-MODULE_COMMENT = Model-predictive motion planner
+MODULE_NAME = Neural Motion Planner
+MODULE_COMMENT = neural motion planner
 
 LINK = g++
 CFLAGS += -fopenmp
