@@ -2,8 +2,6 @@
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_odeiv2.h>
-#include <fstream>
-#include <iostream>
 
 
 typedef struct
@@ -155,17 +153,10 @@ carmen_libcarmodel_recalc_pos_ackerman(carmen_robot_and_trailer_traj_point_t rob
 		double full_time_interval, double *distance_traveled, double delta_t,
 		carmen_robot_ackerman_config_t robot_config, carmen_semi_trailer_config_t semi_trailer_config)
 {
-	std::ofstream testes_caio;
-	testes_caio.open("testes_caio.txt", std::ios::in | std::ios::app);
-	testes_caio << "scfp: chamando pelo mpp_optimization_function_f\n";
-	testes_caio.close();
 //	delta_t = delta_t / 10.0;
 	double a = (target_v - robot_state.v) / full_time_interval;
-	printf("a = %lf\n", a);
 	int n = floor(full_time_interval / delta_t);
-	printf("n = %d\n", n);
 	double remaining_time = full_time_interval - ((double) n * delta_t);
-	printf("remaining_time = %lf\n", remaining_time);
 	carmen_robot_and_trailer_traj_point_t achieved_robot_state = robot_state; // achieved_robot_state eh computado iterativamente abaixo a partir do estado atual do robo
 
 	double curvature = carmen_get_curvature_from_phi(target_phi, target_v,
@@ -181,7 +172,6 @@ carmen_libcarmodel_recalc_pos_ackerman(carmen_robot_and_trailer_traj_point_t rob
 	{
 		double dist_walked = predict_next_pose_step(&achieved_robot_state, target_v, a, delta_t,
 				new_curvature, curvature, max_curvature_change, robot_config, semi_trailer_config);
-		//printf("dist_walked = %lf\n", dist_walked);
 
 		if (distance_traveled)
 			*distance_traveled += dist_walked;
@@ -189,13 +179,11 @@ carmen_libcarmodel_recalc_pos_ackerman(carmen_robot_and_trailer_traj_point_t rob
 
 	if (remaining_time > 0.0)
 	{
-		printf("entrou no remaining_time > 0.0\n");
 		double dist_walked = predict_next_pose_step(&achieved_robot_state, target_v, a, remaining_time,
 				new_curvature, curvature, max_curvature_change, robot_config, semi_trailer_config);
 
 		if (distance_traveled)
 			*distance_traveled += dist_walked;
-		printf("distance_traveled_dentro_do_libcarmodel = %lf\n", *distance_traveled);
 	}
 
 	achieved_robot_state.theta = carmen_normalize_theta(achieved_robot_state.theta);

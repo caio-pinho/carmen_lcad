@@ -358,13 +358,11 @@ compute_plan(Tree *tree)
 	}
 
 	free_tree(tree);
-	printf("Computing plan\n");//@CAIO: passou aqui!
 	vector<vector<carmen_robot_and_trailer_path_point_t> > path = compute_path_to_goal(GlobalState::localizer_pose,
 			GlobalState::goal_pose, GlobalState::last_odometry, GlobalState::robot_config.max_v, path_goals_and_annotations_message);
 
 	if (path.size() == 0)
 	{
-		printf("Entrou no Path size == 0\n");//@CAIO: não entrou aqui
 		tree->num_paths = 0;
 		tree->paths = NULL;
 		vector<carmen_robot_and_trailer_path_point_t> voidVector;
@@ -373,9 +371,6 @@ compute_plan(Tree *tree)
 	}
 	else
 	{
-		printf("Path size is %lu\n", path.size());//@CAIO: entrou aqui! (path.size() = 1)
-		printf("Path[0].size() = %lu\n", path[0].size());//@CAIO: path[0].size() = 0
-		//printf("Path[0]. %f %f %f %f %f %f\n", path[0][0].x, path[0][0].y, path[0][0].theta, path[0][0].beta, path[0][0].v, path[0][0].phi);//@CAIO: falhou pois não existem
 		tree->num_paths = path.size();
 		tree->paths = (carmen_robot_and_trailer_traj_point_t **) malloc(tree->num_paths * sizeof(carmen_robot_and_trailer_traj_point_t *));
 		tree->paths_sizes = (int *) malloc(tree->num_paths * sizeof(int));
