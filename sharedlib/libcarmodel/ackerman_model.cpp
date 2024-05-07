@@ -181,7 +181,7 @@ carmen_libcarmodel_recalc_pos_ackerman(carmen_robot_and_trailer_traj_point_t rob
 	{
 		double dist_walked = predict_next_pose_step(&achieved_robot_state, target_v, a, delta_t,
 				new_curvature, curvature, max_curvature_change, robot_config, semi_trailer_config);
-		printf("dist_walked = %lf\n", dist_walked);
+		//printf("dist_walked = %lf\n", dist_walked);
 
 		if (distance_traveled)
 			*distance_traveled += dist_walked;

@@ -434,7 +434,21 @@ simulate_car_from_parameters(TrajectoryDimensions &td,
 	tcp.sf = distance_traveled;
 	td.control_parameters = tcp;
 
-	printf("path.size() dentro do scfp: %d\n", path.size());
+	printf("path.size() dentro do scfp: %lu\n", path.size());
+	printf("path[0].x: %f\n", path[0].x);
+	printf("path[0].y: %f\n", path[0].y);
+	printf("path[0].theta: %f\n", path[0].theta);
+	printf("path[0].beta: %f\n", path[0].beta);
+	printf("path[0].v: %f\n", path[0].v);
+	printf("path[0].phi: %f\n", path[0].phi);
+	printf("path[0].time: %f\n", path[0].time);
+	printf("path[1].x: %f\n", path[1].x);
+	printf("path[1].y: %f\n", path[1].y);
+	printf("path[1].theta: %f\n", path[1].theta);
+	printf("path[1].beta: %f\n", path[1].beta);
+	printf("path[1].v: %f\n", path[1].v);
+	printf("path[1].phi: %f\n", path[1].phi);
+	printf("path[1].time: %f\n", path[1].time);
 
 	return (path);
 }
@@ -1201,7 +1215,7 @@ compute_suitable_acceleration_and_tt(ObjectiveFunctionParams &params,
 		target_v = 0.0;
 
 	tcp_seed.s = target_td.dist; // Pior caso: forcca otimizacao para o primeiro zero da distancia, evitando voltar de reh para atingir a distancia.
-	tcp_seed.valid = true; //@CAIO: adicionei aqui
+	//tcp_seed.valid = true; //@CAIO: adicionei aqui
 	compute_a_and_t_from_s(tcp_seed.s, target_v, target_td, tcp_seed, &params);
 }
 
@@ -1334,10 +1348,6 @@ double
 get_path_to_lane_distance(TrajectoryDimensions td,
 		TrajectoryControlParameters tcp, ObjectiveFunctionParams *my_params)
 {
-	//COMENTADO PARA DATASET ofstream optimizer_prints;
-	//COMENTADO PARA DATASET optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
-	//COMENTADO PARA DATASET optimizer_prints << "scfp: chamando pelo get_path_to_lane_distance\n";
-	//COMENTADO PARA DATASET optimizer_prints.close();
 	vector<carmen_robot_and_trailer_path_point_t> path = simulate_car_from_parameters(td, tcp, my_params->target_td->v_i, my_params->target_td->beta_i);
 	double path_to_lane_distance = 0.0;
 	if (my_params->use_lane && (my_params->detailed_lane.size() > 0) && (path.size() > 0))
@@ -1489,15 +1499,15 @@ get_complete_optimized_trajectory_control_parameters(TrajectoryControlParameters
 	else
 		params.use_lane = false;
 
-	int max_iterations;
-//	if ((GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_SEMI_TRAILER) ||
+	//int max_iterations;@CAIO: comentei aqui
+//	if ((GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_SEMI_TRAILER) ||@CAIO: comentei aqui
 //		(GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_TRUCK_SEMI_TRAILER) ||
 //		(GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK))
-	if (((GlobalState::semi_trailer_config.type != 0) && (GlobalState::route_planner_state ==  EXECUTING_OFFROAD_PLAN)) ||
+	/*if (((GlobalState::semi_trailer_config.type != 0) && (GlobalState::route_planner_state ==  EXECUTING_OFFROAD_PLAN)) ||
 		(target_td.dist < GlobalState::distance_between_waypoints / 1.5))
 		max_iterations = 150;
 	else
-		max_iterations = 50;
+		max_iterations = 50;*/
 
 	TrajectoryControlParameters tcp_seed;
 	if (!previous_tcp.valid)
