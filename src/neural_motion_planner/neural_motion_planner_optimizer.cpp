@@ -313,8 +313,7 @@ compute_path_via_simulation(carmen_robot_and_trailer_traj_point_t &robot_state, 
 	path.push_back(convert_to_carmen_robot_and_trailer_path_point_t(robot_state, delta_t));
 	
 	std::vector<double> steering_list = linspace(-0.05235988, 0.05235988, 21);
-	printf("delta_t: %f\n", delta_t);
-	printf("tcp.tt: %f\n", tcp.tt);
+	
 	for (t = delta_t; t < tcp.tt; t += delta_t)
 	{
 		t = tcp.tt;
@@ -421,7 +420,6 @@ simulate_car_from_parameters(TrajectoryDimensions &td,
 	Command command;
 	carmen_robot_and_trailer_traj_point_t robot_state;
 	double distance_traveled = compute_path_via_simulation(robot_state, command, path, tcp, v0, i_beta, delta_t);
-	printf("distance_traveled: %f\n", distance_traveled);
 	//gsl_spline_free(phi_spline); @CAIO: comentei aqui
 
 	carmen_robot_and_trailer_path_point_t furthest_point;
@@ -433,22 +431,6 @@ simulate_car_from_parameters(TrajectoryDimensions &td,
 	tcp.vf = command.v;
 	tcp.sf = distance_traveled;
 	td.control_parameters = tcp;
-
-	printf("path.size() dentro do scfp: %lu\n", path.size());
-	printf("path[0].x: %f\n", path[0].x);
-	printf("path[0].y: %f\n", path[0].y);
-	printf("path[0].theta: %f\n", path[0].theta);
-	printf("path[0].beta: %f\n", path[0].beta);
-	printf("path[0].v: %f\n", path[0].v);
-	printf("path[0].phi: %f\n", path[0].phi);
-	printf("path[0].time: %f\n", path[0].time);
-	printf("path[1].x: %f\n", path[1].x);
-	printf("path[1].y: %f\n", path[1].y);
-	printf("path[1].theta: %f\n", path[1].theta);
-	printf("path[1].beta: %f\n", path[1].beta);
-	printf("path[1].v: %f\n", path[1].v);
-	printf("path[1].phi: %f\n", path[1].phi);
-	printf("path[1].time: %f\n", path[1].time);
 
 	return (path);
 }
@@ -603,13 +585,6 @@ compute_a_and_t_from_s_foward(double s, double target_v,
 
 	params->suitable_tt = tcp_seed.tt;
 	params->suitable_acceleration = tcp_seed.a = a;
-
-	printf("a: %f\n", a);
-	printf("tt: %f\n", tcp_seed.tt);
-	printf("target_v: %f\n", target_v);
-	printf("s: %f\n", s);
-	printf("target_td.v_i: %f\n", target_td.v_i);
-	printf("target_td.dist: %f\n", target_td.dist);
 }
 
 #else
@@ -735,7 +710,6 @@ limit_tcp_phi(TrajectoryControlParameters &tcp)
 TrajectoryControlParameters
 fill_in_tcp(const gsl_vector *x, ObjectiveFunctionParams *params)
 {
-	printf("entrou no fill_in_tcp\n");
 	TrajectoryControlParameters tcp = {};
 
 	tcp.s = gsl_vector_get(x, 0);
@@ -1274,7 +1248,6 @@ get_tcp_with_n_knots(TrajectoryControlParameters &tcp, int n)
 TrajectoryControlParameters
 get_optimized_trajectory_control_parameters(TrajectoryControlParameters tcp_seed, ObjectiveFunctionParams &params)
 {
-	printf("get_optimized_trajectory_control_parameters: chamando\n");//@CAIO: passou aqui
 	int current_eliminate_path_follower_value = GlobalState::eliminate_path_follower;
 	GlobalState::eliminate_path_follower = 0;
 
@@ -1318,10 +1291,8 @@ get_optimized_trajectory_control_parameters(TrajectoryControlParameters tcp_seed
 	TrajectoryControlParameters tcp = fill_in_tcp(s->x, &params);
 
 	if (bad_tcp(tcp)) 
-	{//@CAIO: criei aqui
-		printf("get_optimized_trajectory_control_parameters: bad tcp\n"); //@CAIO: não entrou aqui
 		tcp.valid = false;
-	}//@CAIO: criei aqui
+
 	if ((tcp.tt < 0.05) || (params.plan_cost > params.max_plan_cost)) // too short plan or bad minimum (s->f should be close to zero) mudei de 0.05 para outro
 		tcp.valid = false;
 
