@@ -1,17 +1,7 @@
-/*
- * model_predictive_planner.cpp
- *
- *  Created on: Jun 22, 2016
- *      Author: alberto
- */
 #include <stdio.h>
 #include <iostream>
 #include <vector>
 #include <math.h>
-
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_spline.h>
-#include <gsl/gsl_multimin.h>
 
 #include <carmen/collision_detection.h>
 
@@ -27,12 +17,8 @@
 using namespace g2o;
 
 int print_to_debug = 0;
-int plot_to_debug = 0;
 
 extern int use_unity_simulator;
-
-//#define EXPERIMENT_DATA
-//#define PLOT_COLLISION
 
 
 void
@@ -370,11 +356,6 @@ compute_path_to_goal(carmen_robot_and_trailer_pose_t *localizer_pose, Pose *goal
 		if (!goal_in_lane)
 			detailed_lane.clear();
 	}
-
-#ifdef EXPERIMENT_DATA
-		save_experiment_data(path_goals_and_annotations_message, localizer_pose,
-						 detailed_lane, last_odometry);
-#endif
 
 	bool use_lane = true;
 	TrajectoryDimensions td = get_trajectory_dimensions_from_robot_state(localizer_pose, last_odometry, goal_pose);
