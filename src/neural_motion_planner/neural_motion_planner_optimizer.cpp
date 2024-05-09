@@ -344,38 +344,6 @@ compute_a_and_t_from_s(double s, double target_v,
 }
 
 
-TrajectoryControlParameters
-fill_in_tcp(const gsl_vector *x, ObjectiveFunctionParams *params)
-{
-	TrajectoryControlParameters tcp = {};
-
-	tcp.s = gsl_vector_get(x, 0);
-	if (tcp.s < 0.01)
-		tcp.s = 0.01;
-
-	tcp.k.push_back(params->target_td->phi_i); //@CAIO: comentei aqui
-	for (unsigned int i = 1; i < x->size; i++) //@CAIO: comentei aqui
-		tcp.k.push_back(gsl_vector_get(x, i)); //@CAIO: comentei aqui
-//	limit_tcp_phi(tcp);
-
-	compute_a_and_t_from_s(tcp.s, params->target_v, *params->target_td, tcp, params);
-	tcp.a = params->suitable_acceleration;
-	tcp.tt = params->suitable_tt;
-
-	if (tcp.tt < 0.05) // o tempo nao pode ser pequeno demais
-		tcp.tt = 0.05;
-
-//	if (tcp.a < -GlobalState::robot_config.maximum_deceleration_forward) // a aceleracao nao pode ser negativa demais//TODO
-//		tcp.a = -GlobalState::robot_config.maximum_deceleration_forward;
-//	if (tcp.a > GlobalState::robot_config.maximum_acceleration_forward) // a aceleracao nao pode ser positiva demais
-//		tcp.a = GlobalState::robot_config.maximum_acceleration_forward;
-
-	tcp.valid = true;
-
-	return (tcp);
-}
-
-
 void
 move_path_to_current_robot_pose(vector<carmen_robot_and_trailer_path_point_t> &path, carmen_robot_and_trailer_pose_t *localizer_pose)
 {
@@ -591,14 +559,6 @@ compute_proximity_to_obstacles_using_distance_map(vector<carmen_robot_and_traile
 }
 
 
-double
-get_distance_dependent_activation_factor(double threshold __attribute__((unused)), ObjectiveFunctionParams *my_params __attribute__((unused)))
-{
-	double activation_factor = 1.0;
-	return (activation_factor);
-}
-
-
 //double
 //get_distance_dependent_activation_factor(double threshold, ObjectiveFunctionParams *my_params)
 //{
@@ -649,48 +609,6 @@ compute_semi_trailer_to_goal_distance(vector<carmen_robot_and_trailer_path_point
 }
 
 
-double
-mpp_optimization_function_f(const gsl_vector *x, void *params)
-{
-	ObjectiveFunctionParams *my_params = (ObjectiveFunctionParams *) params;
-	TrajectoryControlParameters tcp = fill_in_tcp(x, my_params);
-
-	if (bad_tcp(tcp))
-		return (1000000.0);
-
-	TrajectoryDimensions td;
-	//COMENTADO PARA DATASET ofstream optimizer_prints;
-	//COMENTADO PARA DATASET optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
-	//COMENTADO PARA DATASET optimizer_prints << "scfp: chamando pelo mpp_optimization_function_f\n";
-	//COMENTADO PARA DATASET optimizer_prints.close();
-	vector<carmen_robot_and_trailer_path_point_t> path = simulate_car_from_parameters(td, tcp, my_params->target_td->v_i, my_params->target_td->beta_i);
-
-//	double beta_activation_factor = get_beta_activation_factor();
-	my_params->plan_cost = ((td.dist - my_params->target_td->dist) * (td.dist - my_params->target_td->dist) / my_params->distance_by_index +
-//		beta_activation_factor * (carmen_normalize_theta(td.beta - my_params->target_td->beta) * carmen_normalize_theta(td.beta - my_params->target_td->beta)) / 1.0 +
-		(carmen_normalize_theta(td.theta - my_params->target_td->theta) * carmen_normalize_theta(td.theta - my_params->target_td->theta)) / (my_params->theta_by_index * 2.0) +
-		(carmen_normalize_theta(td.d_yaw - my_params->target_td->d_yaw) * carmen_normalize_theta(td.d_yaw - my_params->target_td->d_yaw)) / (my_params->d_yaw_by_index * 2.0));
-
-	double semi_trailer_to_goal_distance = 0.0;
-//	if ((GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_SEMI_TRAILER) ||
-//		(GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_TRUCK_SEMI_TRAILER))
-	if ((GlobalState::semi_trailer_config.type != 0) && (GlobalState::route_planner_state ==  EXECUTING_OFFROAD_PLAN))
-		semi_trailer_to_goal_distance = compute_semi_trailer_to_goal_distance(path, my_params->target_td);
-//		semi_trailer_to_goal_distance = carmen_normalize_theta(carmen_radians_to_degrees(td.beta) - carmen_radians_to_degrees(my_params->target_td->beta)) *
-//				carmen_normalize_theta(carmen_radians_to_degrees(td.beta) - carmen_radians_to_degrees(my_params->target_td->beta));
-
-	double w2_activation_factor = get_distance_dependent_activation_factor(2.0, my_params);
-	double result = sqrt(
-				GlobalState::w1 * (td.dist - my_params->target_td->dist) * (td.dist - my_params->target_td->dist) / my_params->distance_by_index +
-//				beta_activation_factor * (carmen_normalize_theta(td.beta - my_params->target_td->beta) * carmen_normalize_theta(td.beta - my_params->target_td->beta)) / 1.0 +
-				w2_activation_factor * 4.0 * GlobalState::w2 * (carmen_normalize_theta(td.theta - my_params->target_td->theta) * carmen_normalize_theta(td.theta - my_params->target_td->theta)) / my_params->theta_by_index +
-				GlobalState::w3 * (carmen_normalize_theta(td.d_yaw - my_params->target_td->d_yaw) * carmen_normalize_theta(td.d_yaw - my_params->target_td->d_yaw)) / my_params->d_yaw_by_index +
-				GlobalState::w6 * semi_trailer_to_goal_distance * semi_trailer_to_goal_distance);
-
-	return (result);
-}
-
-
 void
 my_df(const gsl_vector *v, void *params, gsl_vector *df)
 {
@@ -724,85 +642,6 @@ my_fdf(const gsl_vector *x, void *params, double *f, gsl_vector *df)
 	my_df(x, params, df);
 }
 
-//int print_ws = 0;
-
-double
-mpp_optimization_function_g(const gsl_vector *x, void *params)
-{
-	ObjectiveFunctionParams *my_params = (ObjectiveFunctionParams *) params;
-	TrajectoryControlParameters tcp = fill_in_tcp(x, my_params);
-
-	if (bad_tcp(tcp))
-		return (1000000.0);
-
-	TrajectoryDimensions td;
-	//COMENTADO PARA DATASET ofstream optimizer_prints;
-	//COMENTADO PARA DATASET optimizer_prints.open("optimizer_prints.txt", ios::in | ios::app);
-	//COMENTADO PARA DATASET optimizer_prints << "scfp: chamando pelo mpp_optimization_function_g\n";
-	//COMENTADO PARA DATASET optimizer_prints.close();
-	vector<carmen_robot_and_trailer_path_point_t> path = simulate_car_from_parameters(td, tcp, my_params->target_td->v_i, my_params->target_td->beta_i);
-
-	double path_to_lane_distance = 0.0;
-	if (my_params->use_lane && (my_params->detailed_lane.size() > 0) && (path.size() > 0))
-	{
-#ifdef NEW_PATH_TO_LANE_DISTANCE
-		path_to_lane_distance = compute_path_to_lane_distance(my_params, path);
-#else
-		if (path.size() != my_params->path_size)
-		{
-			compute_path_points_nearest_to_lane(my_params, path);
-			path_to_lane_distance = compute_path_to_lane_distance(my_params, path);
-		}
-		else
-			path_to_lane_distance = compute_path_to_lane_distance(my_params, path);
-#endif
-	}
-
-	double proximity_to_obstacles = 0.0;
-	if (use_obstacles && GlobalState::distance_map != NULL && path.size() > 0)
-		proximity_to_obstacles = compute_proximity_to_obstacles_using_distance_map(path);
-
-//	double beta_activation_factor = get_beta_activation_factor();
-	my_params->plan_cost = sqrt((td.dist - my_params->target_td->dist) * (td.dist - my_params->target_td->dist) / my_params->distance_by_index +
-			(carmen_normalize_theta(td.theta - my_params->target_td->theta) * carmen_normalize_theta(td.theta - my_params->target_td->theta)) / (my_params->theta_by_index * 0.2) +
-//			beta_activation_factor * (carmen_normalize_theta(td.beta - my_params->target_td->beta) * carmen_normalize_theta(td.beta - my_params->target_td->beta)) / 1.0 +
-			(carmen_normalize_theta(td.d_yaw - my_params->target_td->d_yaw) * carmen_normalize_theta(td.d_yaw - my_params->target_td->d_yaw)) / (my_params->d_yaw_by_index * 0.2));
-
-	double w2_activation_factor = get_distance_dependent_activation_factor(2.0, my_params);
-	double w4_activation_factor = get_distance_dependent_activation_factor(6.0, my_params);
-
-	double semi_trailer_to_goal_distance = 0.0;
-//	if ((GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_SEMI_TRAILER) ||
-//		(GlobalState::behavior_selector_task == BEHAVIOR_SELECTOR_PARK_TRUCK_SEMI_TRAILER))
-	if ((GlobalState::semi_trailer_config.type != 0) && (GlobalState::route_planner_state ==  EXECUTING_OFFROAD_PLAN))
-		semi_trailer_to_goal_distance = compute_semi_trailer_to_goal_distance(path, my_params->target_td);
-//		semi_trailer_to_goal_distance = carmen_normalize_theta(carmen_radians_to_degrees(td.beta) - carmen_radians_to_degrees(my_params->target_td->beta)) *
-//				carmen_normalize_theta(carmen_radians_to_degrees(td.beta) - carmen_radians_to_degrees(my_params->target_td->beta));
-
-	double result = sqrt(
-				GlobalState::w1 * ((td.dist - my_params->target_td->dist) * (td.dist - my_params->target_td->dist)) / my_params->distance_by_index +
-				w2_activation_factor * GlobalState::w2 * (carmen_normalize_theta(td.theta - my_params->target_td->theta) * carmen_normalize_theta(td.theta - my_params->target_td->theta)) / my_params->theta_by_index +
-				GlobalState::w3 * (carmen_normalize_theta(td.d_yaw - my_params->target_td->d_yaw) * carmen_normalize_theta(td.d_yaw - my_params->target_td->d_yaw)) / my_params->d_yaw_by_index +
-				w4_activation_factor * GlobalState::w4 * path_to_lane_distance + // já é quandrática
-//				beta_activation_factor * (carmen_normalize_theta(td.beta - my_params->target_td->beta) * carmen_normalize_theta(td.beta - my_params->target_td->beta)) / 1.0 +
-				GlobalState::w5 * proximity_to_obstacles +
-				GlobalState::w6 * semi_trailer_to_goal_distance * semi_trailer_to_goal_distance);
-
-//	if (print_ws)
-//	{
-//		printf("* r % 3.8lf, w1 % 3.8lf, w2 % 3.8lf, w3 % 3.8lf, w4 % 3.8lf, w5 % 3.8lf, ps %d\n", result,
-//				GlobalState::w1 * ((td.dist - my_params->target_td->dist) * (td.dist - my_params->target_td->dist)) / my_params->distance_by_index,
-//				activate_factor * GlobalState::w2 * (carmen_normalize_theta(td.theta - my_params->target_td->theta) * carmen_normalize_theta(td.theta - my_params->target_td->theta)) / my_params->theta_by_index,
-//				GlobalState::w3 * (carmen_normalize_theta(td.d_yaw - my_params->target_td->d_yaw) * carmen_normalize_theta(td.d_yaw - my_params->target_td->d_yaw)) / my_params->d_yaw_by_index,
-//				activate_factor * GlobalState::w4 * path_to_lane_distance,
-//				GlobalState::w5 * proximity_to_obstacles,
-//				(int) path.size());
-//		print_tcp(tcp);
-//	}
-
-	return (result);
-}
-
 
 void
 compute_suitable_acceleration_and_tt(ObjectiveFunctionParams &params,
@@ -828,94 +667,6 @@ compute_suitable_acceleration_and_tt(ObjectiveFunctionParams &params,
 	tcp_seed.s = target_td.dist; // Pior caso: forcca otimizacao para o primeiro zero da distancia, evitando voltar de reh para atingir a distancia.
 	//tcp_seed.valid = true; //@CAIO: adicionei aqui
 	compute_a_and_t_from_s(tcp_seed.s, target_v, target_td, tcp_seed, &params);
-}
-
-
-void
-get_tcp_with_n_knots(TrajectoryControlParameters &tcp, int n)
-{
-	//gsl_spline *phi_spline = get_phi_spline(tcp);
-	gsl_interp_accel *acc = gsl_interp_accel_alloc();
-
-	if (n == 4)
-	{
-		tcp.k.push_back(tcp.k[2]);
-		tcp.k[2] = tcp.k[1];
-		//tcp.k[1] = gsl_spline_eval(phi_spline, tcp.tt / 4.0, acc);
-	}
-	else
-	{
-		tcp.k = {};
-		for (int i = 0; i < (n - 1); i++)
-		{
-			double t = (tcp.tt / (double) (n - 1)) * (double) (i);
-			//tcp.k.push_back(gsl_spline_eval(phi_spline, t, acc));
-		}
-		//tcp.k.push_back(gsl_spline_eval(phi_spline, tcp.tt, acc));
-
-	}
-	//gsl_spline_free(phi_spline);
-	gsl_interp_accel_free(acc);
-}
-
-
-TrajectoryControlParameters
-get_optimized_trajectory_control_parameters(TrajectoryControlParameters tcp_seed, ObjectiveFunctionParams &params)
-{
-	int current_eliminate_path_follower_value = GlobalState::eliminate_path_follower;
-	GlobalState::eliminate_path_follower = 0;
-
-	gsl_multimin_function_fdf my_func;
-
-	// O phi inicial, que eh guardado em tcp_seed.k[0], nao eh otimizado, mas usamos o tamanho de k aqui
-	// pois as variaveis otimizadas incluem o s. Logo, o tamanho do problema fica igual ao numero de nos mais o phi
-	// inicial, que eh guardado em k[0].
-	my_func.n = tcp_seed.k.size();
-	my_func.f = params.my_f;
-	my_func.df = my_df;
-	my_func.fdf = my_fdf;
-	my_func.params = &params;
-
-	/* Starting point, x */
-	gsl_vector *x = gsl_vector_alloc(tcp_seed.k.size());
-	gsl_vector_set(x, 0, tcp_seed.s);
-	for (unsigned int i = 1; i < tcp_seed.k.size(); i++)
-		gsl_vector_set(x, i, tcp_seed.k[i]);
-
-	const gsl_multimin_fdfminimizer_type *T = gsl_multimin_fdfminimizer_conjugate_fr;
-	gsl_multimin_fdfminimizer *s = gsl_multimin_fdfminimizer_alloc(T, tcp_seed.k.size());
-
-	gsl_multimin_fdfminimizer_set(s, &my_func, x, params.o_step_size, params.o_tol);
-
-	int iter = 0;
-	int status;
-	do
-	{
-		iter++;
-
-		status = gsl_multimin_fdfminimizer_iterate(s);
-
-		if (status)
-			break;
-
-		status = gsl_multimin_test_gradient(s->gradient, params.o_epsabs); // esta funcao retorna GSL_CONTINUE ou zero
-
-	} while ((status == GSL_CONTINUE) && (iter < params.max_iterations));
-
-	TrajectoryControlParameters tcp = fill_in_tcp(s->x, &params);
-
-	if (bad_tcp(tcp)) 
-		tcp.valid = false;
-
-	if ((tcp.tt < 0.05) || (params.plan_cost > params.max_plan_cost)) // too short plan or bad minimum (s->f should be close to zero) mudei de 0.05 para outro
-		tcp.valid = false;
-
-	gsl_multimin_fdfminimizer_free(s);
-	gsl_vector_free(x);
-
-	GlobalState::eliminate_path_follower = current_eliminate_path_follower_value;
-
-	return (tcp);
 }
 
 
